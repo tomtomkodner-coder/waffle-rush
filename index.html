@@ -309,6 +309,13 @@ h1{margin:14px 0 0;font-size:30px;line-height:1.15;font-weight:600;font-variatio
 .radd button{width:40px;height:40px;border-radius:10px;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-size:18px}
 .grab{width:44px;height:5px;margin-bottom:14px;cursor:grab;position:relative}
 .grab::after{content:"";position:absolute;inset:-14px -40px}
+.links{border-radius:14px;border:1px solid var(--line);background:var(--bg);overflow:hidden}
+.links a{display:flex;align-items:center;gap:12px;padding:12px 14px;color:var(--ink);text-decoration:none}
+.links a+a{border-top:1px solid var(--line)}
+.links a>i{font-size:20px;color:var(--muted)}.links a span{flex:1;min-width:0}
+.links b{display:block;font-weight:500;font-size:15px}.links small{font-size:12.5px;color:var(--muted)}
+.links .go{font-size:16px;color:var(--faint)}
+.mine{display:inline-block;margin-inline-start:6px;padding:0 6px;border-radius:6px;border:1px dashed var(--line);font-size:11px;line-height:16px;color:var(--muted);vertical-align:1px}
 /* news */
 .news{display:flex;align-items:center;gap:10px;margin-top:12px;padding:9px 8px 9px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-size:14px}
 .news>i{font-size:18px;color:var(--muted)}
@@ -426,6 +433,7 @@ h1{margin:14px 0 0;font-size:30px;line-height:1.15;font-weight:600;font-variatio
         <button id="rAdd" aria-label="הוספה"><i class="ph ph-plus"></i></button>
       </div>
     </div>
+    <div class="f"><span class="l">באתר של בית הספר</span><div class="links" id="links"></div></div>
     <div class="f" id="wHint" hidden><span class="l">ווידג׳ט</span><p class="hint"><i class="ph ph-squares-four"></i>אפשר להוסיף את Handasaim למסך הבית: לחיצה ארוכה על המסך, ווידג׳טים, Handasaim. הוא מראה את השיעור הנוכחי, הבא ואת המבחן הקרוב.</p></div>
     <div class="acts2"><button id="rfNow"><i class="ph ph-arrow-clockwise"></i>רענון המערכת</button><button id="chkUpd" hidden><i class="ph ph-cloud-arrow-down"></i>בדיקת עדכונים</button></div>
     <button class="cta" id="save">סיום</button>
@@ -536,7 +544,8 @@ function weeklyDoc(d){const dow=P(d).getDay();if(dow>4)return null;const W=WEEKL
 /* the published day if we have it; while it is loading undefined; otherwise the fixed weekly timetable */
 const docFor=d=>S.docs[d]?S.docs[d]:(S.docs[d]===undefined&&has(d)?undefined:weeklyDoc(d));
 /* "השיעורים הקבועים שלי": personal rules that beat the timetable, e.g. Sunday lessons 6-9 = רחפנים */
-let RULES=ls.get("rules",null);if(!RULES){RULES=S.cls==="ט 3"?[{cls:"ט 3",d:0,f:6,t:9,s:"רחפנים"}]:[];ls.set("rules",RULES)}
+let RULES=ls.get("rules",null);if(!RULES){RULES=S.cls==="ט 3"?[{cls:"ט 3",d:0,f:7,t:9,s:"רחפנים"}]:[];ls.set("rules",RULES)}
+if(!ls.get("rulesFix79",false)){for(const r of RULES)if(r.cls==="ט 3"&&r.d===0&&r.f===6&&r.t===9&&r.s==="רחפנים")r.f=7;ls.set("rules",RULES);ls.set("rulesFix79",true)}
 function applyRules(L,doc){const dow=P(doc.date).getDay();const rs=RULES.filter(r=>r.cls===S.cls&&r.d===dow);if(!rs.length)return L;
   /* one teacher for the whole rule (taken from any lesson in the range that has that subject) so 6-9 shows as one block */
   const tch=new Map(rs.map(r=>{const hit=L.filter(l=>+l.n>=r.f&&+l.n<=r.t).flatMap(l=>l.items).find(x=>x.teacher&&(fix(x.subject).includes(r.s)||r.s.includes(base(x.subject))));return[r,hit?.teacher||tmem(r.s)||""]}));
@@ -696,7 +705,7 @@ function list(anim){
       body=`<div class="xt"><span class="tag"><i class="ph-fill ph-pencil-simple-line"></i>${kindOf(x.exam.t).w}</span><b>${esc(x.exam.t)}</b></div><div class="m">${bLbl(x)}${x.exam.room?`, חדר ${esc(x.exam.room)}`:""}${subj&&!x.exam.cell&&!x.exam.t.includes(base(subj))?`, במקום ${esc(subj)}`:""}</div>${x.exam.news?`<div class="m2">מתוך הודעה באתר בית הספר: ${esc(x.exam.news)}</div>`:""}`}
     else if(x.exam){cls=" marked";
       body=`<div class="xt"><span class="tag soft">מסומן</span><b>${esc(subj)}</b></div><div class="m">${bLbl(x)}${tch?`, ${esc(tch)}`:""}</div><div class="m2">השעות מסומנות בכחול במערכת של בית הספר, בדרך כלל זה מבחן</div>`}
-    else body=free?`<div class="s">שעה חופשית</div><div class="m">${bLbl(x)}</div>`:x.items.map((y,j)=>`<div class="g"><div class="s">${esc(fix(y.subject))}${y.is_sub?'<span class="tag sub">החלפה</span>':""}</div><div class="m">${j===0?bLbl(x):""}${j===0&&S.pref.teachers&&y.teacher?", ":""}${S.pref.teachers?esc(name(y.teacher)):""}${y.is_sub&&y.orig_subject?`, במקום ${esc(fix(y.orig_subject))}`:""}</div></div>`).join("");
+    else body=free?`<div class="s">שעה חופשית</div><div class="m">${bLbl(x)}</div>`:x.items.map((y,j)=>`<div class="g"><div class="s">${esc(fix(y.subject))}${y.is_sub?'<span class="tag sub">החלפה</span>':""}</div><div class="m">${j===0?bLbl(x):""}${j===0&&x.ls[0].rule?'<span class="mine">קבוע שלך</span>':""}${j===0&&S.pref.teachers&&y.teacher?", ":""}${S.pref.teachers?esc(name(y.teacher)):""}${y.is_sub&&y.orig_subject?`, במקום ${esc(fix(y.orig_subject))}`:""}</div></div>`).join("");
     h+=`<div class="row${st}${free?" free":""}${cls}" style="--i:${i++}"${free?"":` data-k="${esc(x.exam&&!x.exam.cell?skey(x):base(subj))}"`}><div class="t">${T(x.a)}${T(x.b)}</div><div class="rail-v"><i></i></div><div class="c${x.exam?" xb":""}">${body}${st===" cur"?`<span class="left">נשארו ${N(Math.ceil(b-nm))} דק׳</span><div class="bar"><span style="--p:${(nm-a)/(b-a)*100}%"></span></div>`:""}</div></div>`;
   });
   el.innerHTML=h;if(anim)el.classList.add("enter");
@@ -748,11 +757,17 @@ function draw(){const by={};for(const c of S.classes){const[g]=split(c);(by[g]=b
   $("sizes").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.s===S.pref.size));
   $("sws").querySelectorAll(".swr").forEach(b=>b.setAttribute("aria-checked",!!S.pref[b.dataset.k]));
   $("ecs").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.e===S.pref.ec));
-  drawRules();
+  drawRules();drawLinks();
   const hr=homeroom();$("hrT").hidden=!hr;$("hrT").textContent=hr?`המחנך/ת של ${cl(S.cls)}: ${hr}`:""}
+const GN={"ז":7,"ח":8,"ט":9,"י":10,"יא":11,"יב":12};
+function drawLinks(){const[g,n]=split(S.cls),c=cl(S.cls),site="https://handasaim.co.il";
+  const L=[[`${site}/schedule?c=${encodeURIComponent(S.cls)}`,"calendar-blank",`המערכת היומית של ${c}`,"באתר הרשמי, עם הגרסה המחייבת"],
+    [`${site}/classes/${GN[g]}-${n}`,"users-three",`דף הכיתה ${c}`,"הודעות, מחנך ופרטי הכיתה"],
+    [`${site}/weekly`,"table","המערכת השבועית","כל הכיתות"],[`${site}/events`,"pencil-simple-line","לוח אירועים ומבחנים","של כל בית הספר"]];
+  $("links").innerHTML=L.map(([u,i,t,d])=>`<a href="${u}" target="_blank" rel="noopener"><i class="ph ph-${i}"></i><span><b>${esc(t)}</b><small>${esc(d)}</small></span><i class="ph ph-arrow-up-left go"></i></a>`).join("")}
 function drawRules(){const mine=RULES.filter(r=>r.cls===S.cls);
   $("rules").innerHTML=mine.length?mine.map(r=>`<div class="rule"><span>יום ${DAYS[r.d]}, ${r.f===r.t?`שיעור ${N(r.f)}`:`שיעורים ${N(r.f)}-${N(r.t)}`}: <b>${esc(r.s)}</b></span><button data-i="${RULES.indexOf(r)}" aria-label="מחיקה"><i class="ph ph-x"></i></button></div>`).join(""):`<p class="sjn">אין עדיין שיעורים קבועים ל${cl(S.cls)}</p>`;
-  const opts=Array.from({length:10},(_,i)=>`<option value="${i}">${i}</option>`).join("");if(!$("rFrom").options.length){$("rFrom").innerHTML=opts;$("rTo").innerHTML=opts;$("rFrom").value="6";$("rTo").value="9"}}
+  const opts=Array.from({length:10},(_,i)=>`<option value="${i}">${i}</option>`).join("");if(!$("rFrom").options.length){$("rFrom").innerHTML=opts;$("rTo").innerHTML=opts;$("rFrom").value="7";$("rTo").value="9"}}
 $("rules").onclick=e=>{const b=e.target.closest("[data-i]");if(b){RULES.splice(+b.dataset.i,1);ls.set("rules",RULES);render(false);drawRules()}};
 $("rAdd").onclick=()=>{const sub=$("rSub").value.trim();if(!sub){$("rSub").focus();return}let f=+$("rFrom").value,t=+$("rTo").value;if(t<f)[f,t]=[t,f];
   RULES.push({cls:S.cls,d:+$("rDay").value,f,t,s:sub});ls.set("rules",RULES);$("rSub").value="";render(false);drawRules()};

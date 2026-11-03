@@ -36,6 +36,9 @@
 .ph.ph-arrow-clockwise:before {
   content: "\e036";
 }
+.ph.ph-arrow-up-left:before {
+  content: "\e090";
+}
 .ph.ph-calendar-blank:before {
   content: "\e10a";
 }
@@ -71,6 +74,12 @@
 }
 .ph.ph-sun:before {
   content: "\e472";
+}
+.ph.ph-table:before {
+  content: "\e476";
+}
+.ph.ph-users-three:before {
+  content: "\e68e";
 }
 .ph.ph-x:before {
   content: "\e4f6";
@@ -112,6 +121,9 @@
 .ph-fill.ph-arrow-clockwise:before {
   content: "\e036";
 }
+.ph-fill.ph-arrow-up-left:before {
+  content: "\e090";
+}
 .ph-fill.ph-calendar-blank:before {
   content: "\e10a";
 }
@@ -147,6 +159,12 @@
 }
 .ph-fill.ph-sun:before {
   content: "\e472";
+}
+.ph-fill.ph-table:before {
+  content: "\e476";
+}
+.ph-fill.ph-users-three:before {
+  content: "\e68e";
 }
 .ph-fill.ph-x:before {
   content: "\e4f6";
