@@ -783,7 +783,8 @@ $("themes").onclick=e=>{const b=e.target.closest("[data-t]");if(b){S.theme=b.dat
 $("sizes").onclick=e=>{const b=e.target.closest("[data-s]");if(b){S.pref.size=b.dataset.s;savePref()}};
 $("sws").onclick=e=>{const b=e.target.closest(".swr");if(b){S.pref[b.dataset.k]=!S.pref[b.dataset.k];if(b.dataset.k==="remind"&&S.pref.remind)try{Native.askNotify()}catch{};savePref()}};
 $("rfNow").onclick=async()=>{$("rfNow").lastChild.textContent="מתעדכן…";await refresh();$("rfNow").lastChild.textContent="עודכן עכשיו"};
-if(window.Native&&Native.checkNow){$("chkUpd").hidden=false;$("chkUpd").onclick=()=>{$("chkUpd").lastChild.textContent="בודק…";Native.checkNow()}}
+if(window.Native&&Native.checkNow){$("chkUpd").hidden=false;$("chkUpd").onclick=async()=>{$("chkUpd").lastChild.textContent="בודק…";try{Native.checkNow()}catch{}
+  const r=await webCheck(true);if(r==="apk")$("chkUpd").lastChild.textContent="יש גרסה חדשה, הורדה למעלה";else if(r==="none")$("chkUpd").lastChild.textContent="יש לך את הגרסה האחרונה";else if(r==="offline")$("chkUpd").lastChild.textContent="אין חיבור לשרת העדכונים"}}
 $("save").onclick=()=>{ls.set("onboarded",true);close()};
 $("xchip").onclick=()=>{const d=$("xchip").dataset.d;if(has(d)||docFor(d)){S.tab="s";pick(d);render(true)}else{S.tab="e";render()}scrollTo(0,0)};
 $("scrim").onclick=close;
@@ -827,8 +828,16 @@ window.onAppUpdate=(kind,url)=>{const u=$("upd");
   if(msg){const c=$("chkUpd");if(c)c.lastChild.textContent=msg;updInfo();return}
   u.innerHTML=kind==="apk"?`<span>יש גרסה חדשה של האפליקציה</span><a href="${esc(url)}" target="_blank" rel="noopener">הורדה</a>`:`<span>עדכון חדש מוכן</span><button id="updGo">רענון</button>`;
   u.hidden=false;$("updGo")?.addEventListener("click",()=>location.reload())};
+/* the page checks GitHub itself too, so even an older app (with the old native updater) sees a new APK */
+const UPD_URL="https://raw.githubusercontent.com/tomtomkodner-coder/waffle-rush/handasaim/update/version.json";
+const APKCODE={"1.0":1,"1.1":2,"1.2":3,"1.3":4,"1.4":5,"1.5":6,"1.6":7,"1.7":8,"1.8":9,"1.9":10,"2.0":11,"2.1":12,"2.2":13};
+let webUpd=null;
+async function webCheck(manual){const i=appInfo();if(!i)return null;const mine=i.versionCode||APKCODE[i.versionName]||0;
+  try{const r=await fetch(UPD_URL+"?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw 0;const v=await r.json();
+    if(v.apk>mine){webUpd=v.apkUrl;$("updCard").hidden=false;$("updCard").href=v.apkUrl;if($("upd").hidden)onAppUpdate("apk",v.apkUrl);return"apk"}
+    return"none"}catch{return manual?"offline":null}}
 function pollUpd(){const i=appInfo();if(!i)return;const u=$("upd");if(i.apkUrl){if(u.hidden)onAppUpdate("apk",i.apkUrl);$("updCard").hidden=false;$("updCard").href=i.apkUrl}else if(i.pendingWeb&&u.hidden)onAppUpdate("web")}
-document.addEventListener("visibilitychange",()=>{if(!document.hidden)setTimeout(pollUpd,2500)});setInterval(pollUpd,60000);setTimeout(pollUpd,4000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){setTimeout(pollUpd,2500);webCheck()}});setInterval(pollUpd,60000);setInterval(()=>webCheck(),10*60000);setTimeout(pollUpd,4000);setTimeout(()=>webCheck(),3000);
 (()=>{const i=appInfo();if(i){if(i.pendingWeb)onAppUpdate("web");else if(i.apkUrl)onAppUpdate("apk",i.apkUrl);
   $("about").textContent+=` גרסה ${i.versionName}.${i.web}`}updInfo()})();
 function updInfo(){const i=appInfo();if(!i||!$("updInfo"))return;const a=i.lastCheck?Math.round((Date.now()-i.lastCheck)/60000):null;
