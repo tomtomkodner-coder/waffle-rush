@@ -317,6 +317,8 @@ h1{margin:14px 0 0;font-size:30px;line-height:1.15;font-weight:600;font-variatio
 .links .go{font-size:16px;color:var(--faint)}
 .mine{display:inline-block;margin-inline-start:6px;padding:0 6px;border-radius:6px;border:1px dashed var(--line);font-size:11px;line-height:16px;color:var(--muted);vertical-align:1px}
 .credit{margin:18px 0 4px;text-align:center;font-size:13px;color:var(--faint)}.credit b{color:var(--muted);font-weight:600}
+.updcard{display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:12px 14px;border-radius:14px;background:var(--exam-soft);border:1px solid var(--exam-line);box-shadow:var(--glow-soft);color:var(--ink);text-decoration:none}
+.updcard i{font-size:22px;color:var(--exam)}.updcard b{display:block;font-weight:600}.updcard small{color:var(--muted);font-size:12.5px}
 /* news */
 .news{display:flex;align-items:center;gap:10px;margin-top:12px;padding:9px 8px 9px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-size:14px}
 .news>i{font-size:18px;color:var(--muted)}
@@ -436,6 +438,7 @@ h1{margin:14px 0 0;font-size:30px;line-height:1.15;font-weight:600;font-variatio
     </div>
     <div class="f"><span class="l">באתר של בית הספר</span><div class="links" id="links"></div></div>
     <div class="f" id="wHint" hidden><span class="l">ווידג׳ט</span><p class="hint"><i class="ph ph-squares-four"></i>אפשר להוסיף את Handasaim למסך הבית: לחיצה ארוכה על המסך, ווידג׳טים, Handasaim. הוא מראה את השיעור הנוכחי, הבא ואת המבחן הקרוב.</p></div>
+    <a class="updcard" id="updCard" hidden target="_blank" rel="noopener"><i class="ph ph-cloud-arrow-down"></i><span><b>יש גרסה חדשה של Handasaim</b><small>לחצו להורדה והתקנה</small></span></a>
     <div class="acts2"><button id="rfNow"><i class="ph ph-arrow-clockwise"></i>רענון המערכת</button><button id="chkUpd" hidden><i class="ph ph-cloud-arrow-down"></i>בדיקת עדכונים</button></div>
     <button class="cta" id="save">סיום</button>
     <button class="reset" id="resetBtn">איפוס האפליקציה</button>
@@ -824,6 +827,8 @@ window.onAppUpdate=(kind,url)=>{const u=$("upd");
   if(msg){const c=$("chkUpd");if(c)c.lastChild.textContent=msg;updInfo();return}
   u.innerHTML=kind==="apk"?`<span>יש גרסה חדשה של האפליקציה</span><a href="${esc(url)}" target="_blank" rel="noopener">הורדה</a>`:`<span>עדכון חדש מוכן</span><button id="updGo">רענון</button>`;
   u.hidden=false;$("updGo")?.addEventListener("click",()=>location.reload())};
+function pollUpd(){const i=appInfo();if(!i)return;const u=$("upd");if(i.apkUrl){if(u.hidden)onAppUpdate("apk",i.apkUrl);$("updCard").hidden=false;$("updCard").href=i.apkUrl}else if(i.pendingWeb&&u.hidden)onAppUpdate("web")}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)setTimeout(pollUpd,2500)});setInterval(pollUpd,60000);setTimeout(pollUpd,4000);
 (()=>{const i=appInfo();if(i){if(i.pendingWeb)onAppUpdate("web");else if(i.apkUrl)onAppUpdate("apk",i.apkUrl);
   $("about").textContent+=` גרסה ${i.versionName}.${i.web}`}updInfo()})();
 function updInfo(){const i=appInfo();if(!i||!$("updInfo"))return;const a=i.lastCheck?Math.round((Date.now()-i.lastCheck)/60000):null;
@@ -899,9 +904,9 @@ if(window.Native&&Native.setReminders)$("swRemind").hidden=false;
 
 /* ---------- home-screen widget feed (Android) ---------- */
 function pushWidget(){if(!(window.Native&&Native.setWidget))return;
-  try{const t=today(),f=focus(),out={cls:cl(S.cls),days:[]};
+  try{const t=today(),f=focus(),out={cls:cl(S.cls),days:[],name:S.name||"",theme:document.documentElement.dataset.theme||"dark"};
     for(const d of [...new Set([t,f])]){const doc=docFor(d);if(!doc)continue;const B=blocks(lessons(doc),examsOn(d)).B;
-      out.days.push({d,lbl:d===t?"היום":rel(d),b:B.filter(x=>x.items.length||x.exam).map(x=>({a:x.a,b:x.b,n:bLbl(x),t:bName(x),ex:!!(x.exam&&!x.exam.marked),kw:x.exam&&!x.exam.marked?kindOf(x.exam.t).w:""}))})}
+      const BB=B.filter(x=>x.items.length||x.exam);out.days.push({d,lbl:(d===t?"היום":rel(d))+", "+dm(d),cnt:BB.reduce((a,x)=>a+(x.items.length?x.ls.length:0),0),b:BB.map(x=>({a:x.a,b:x.b,n:bLbl(x),t:bName(x),m:x.exam&&!x.exam.marked?"":tn(x),ex:!!(x.exam&&!x.exam.marked),kw:x.exam&&!x.exam.marked?kindOf(x.exam.t).w:""}))})}
     const up=S.events.filter(e=>e.k==="exam"&&e.e>=t&&mine(e)).sort((a,b)=>a.s.localeCompare(b.s))[0];
     if(up){const n=diff(up.s);out.exam=`${up.t} ${n<=0?"היום":n===1?"מחר":`בעוד ${n} ימים`}`}
     Native.setWidget(JSON.stringify(out))}catch{}
