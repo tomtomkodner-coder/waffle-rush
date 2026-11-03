@@ -1,0 +1,915 @@
+<!doctype html>
+<html lang="he" dir="rtl" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Handasaim</title>
+<meta name="theme-color" id="themeColor" content="#0E0F12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Handasaim">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preload" href="fonts/AdapterHebrewVF.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="icons/icons.css">
+<style>
+@font-face{font-family:"Adapter";src:url(fonts/AdapterHebrewVF.woff2) format("woff2-variations"),url(fonts/AdapterHebrewVF.woff2) format("woff2");font-weight:100 900;font-display:swap}
+/* Layout: calm single column. Date + greeting, a quiet week selector, one "now" card, then a vertical timeline of the day. Dark-first. */
+:root{
+  --bg:#0E0F12; --surface:#16181D; --raised:#1D2027; --line:#262A32; --ink:#ECEDEF; --muted:#8E939D; --faint:#7D838E;
+  --accent:#E6E8EE; --on-accent:#0E0F12; --accent-soft:rgba(230,232,238,.06);
+  --exam:#4C9BFF; --exam-soft:rgba(76,155,255,.11); --exam-line:rgba(76,155,255,.55);
+  --calm:#74D3AE; --calm-soft:rgba(116,211,174,.12);
+  --glow:0 0 0 1px rgba(76,155,255,.7),0 0 16px rgba(76,155,255,.55);
+  --glow-soft:0 0 22px rgba(76,155,255,.22);
+  --sans:"Adapter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --ease:cubic-bezier(.23,1,.32,1); --drawer:cubic-bezier(.32,.72,0,1);
+  color-scheme:dark;
+}
+:root[data-theme=light]{
+  --bg:#F4F5F7; --surface:#FFFFFF; --raised:#EEF0F3; --line:#E2E4E9; --ink:#15171B; --muted:#636975; --faint:#6A707B;
+  --accent:#15171B; --on-accent:#FFFFFF; --accent-soft:rgba(21,23,27,.045);
+  --exam:#1F6FEB; --exam-soft:rgba(31,111,235,.08); --exam-line:rgba(31,111,235,.45);
+  --calm:#0A7553; --calm-soft:rgba(15,143,102,.09);
+  --glow:0 0 0 1px rgba(31,111,235,.5),0 0 14px rgba(31,111,235,.35);
+  --glow-soft:0 0 18px rgba(31,111,235,.14);
+  color-scheme:light;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.5 var(--sans);font-variation-settings:"opsz" 4;min-height:100dvh;
+  padding-bottom:calc(88px + env(safe-area-inset-bottom,0px));-webkit-font-smoothing:antialiased;transition:background-color .3s ease,color .3s ease}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer;transition:transform 140ms var(--ease),background-color .2s ease,color .2s ease,border-color .2s ease}
+button:active{transform:scale(.97)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+.wrap{max-width:540px;margin:0 auto;padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px))}
+.num{font-feature-settings:"tnum" 1,"zero" 0;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+.disp{font-variation-settings:"opsz" 18}
+.co{font-feature-settings:"pnum";margin:0 .04em;opacity:.5;position:relative;top:-.06em}
+.glow{color:var(--exam);text-shadow:0 0 12px var(--exam-line)}
+
+/* header */
+.hd{padding-top:calc(env(safe-area-inset-top,0px) + 20px)}
+.hd-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.date{font-size:14px;color:var(--muted)}
+.acts{display:flex;gap:8px}
+.cls{height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:15px}
+.gear{width:36px;height:36px;border-radius:999px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;font-size:18px;color:var(--muted)}
+h1{margin:14px 0 0;font-size:30px;line-height:1.15;font-weight:600;font-variation-settings:"opsz" 18;letter-spacing:-.01em;text-wrap:balance}
+.sum{margin:6px 0 0;color:var(--muted);font-size:15.5px}
+.sum b{color:var(--ink);font-weight:500}
+
+/* week */
+.week{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:18px 14px}
+.days{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;padding:4px;border-radius:16px;background:var(--surface);border:1px solid var(--line)}
+.day{position:relative;padding:8px 0 9px;border-radius:12px;text-align:center;line-height:1.15;color:var(--muted)}
+.day b{display:block;font-weight:500;font-size:14.5px;color:var(--ink)}
+.day .num{display:block;margin-top:2px;font-size:12px}
+.day[aria-pressed=true]{background:var(--accent);color:var(--on-accent)}
+.day[aria-pressed=true] b{color:var(--on-accent);font-weight:600}
+.day.nodata:not([aria-pressed=true]) b{color:var(--faint)}
+.day .mark{position:absolute;bottom:4px;left:50%;width:14px;height:3px;margin-left:-7px;border-radius:3px;background:var(--exam);box-shadow:0 0 8px var(--exam)}
+
+/* now card */
+.now{padding:16px;border-radius:20px;background:var(--surface);border:1px solid var(--line)}
+.now-top{display:flex;align-items:center;gap:16px}
+.ring{position:relative;width:72px;height:72px;flex-shrink:0}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg) scaleY(-1)}
+.ring .trk{stroke:var(--raised)}
+.ring .val{stroke:var(--accent);transition:stroke-dashoffset .8s var(--ease)}
+.ring.calm .val{stroke:var(--calm)}.ring.exam .val{stroke:var(--exam)}
+.ring-c{position:absolute;inset:0;display:grid;place-content:center;text-align:center;line-height:1}
+.ring-c .num{font-size:22px;font-weight:500}
+.ring-c small{font-size:10.5px;color:var(--muted);margin-top:3px}
+.nt{min-width:0}
+.lbl{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--accent);font-weight:500}
+.lbl.calm{color:var(--calm)}.lbl.exam{color:var(--exam)}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 0 0 currentColor;animation:breathe 2.4s ease-out infinite}
+@keyframes breathe{0%{box-shadow:0 0 0 0 color-mix(in srgb,currentColor 45%,transparent)}70%,100%{box-shadow:0 0 0 6px transparent}}
+.subj{margin-top:2px;font-size:22px;line-height:1.2;font-weight:600;font-variation-settings:"opsz" 18;overflow-wrap:anywhere}
+.meta{font-size:14px;color:var(--muted)}
+.rail{display:flex;gap:3px;margin-top:16px;height:6px}
+.seg{position:relative;flex:var(--w) 1 0;border-radius:3px;background:var(--raised);overflow:hidden}
+.seg.done{background:color-mix(in srgb,var(--accent) 45%,var(--raised))}
+.seg.free{background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
+.seg.ex::after{content:"";position:absolute;inset:0;border-radius:3px;box-shadow:inset 0 0 0 1.5px var(--exam)}
+.seg .fill{position:absolute;inset-block:0;inset-inline-start:0;width:var(--p);background:var(--accent);border-radius:3px}
+.rail-t{display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--faint)}
+.next{display:flex;align-items:center;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}
+.next b{color:var(--ink);font-weight:500}
+.next .num{margin-inline-start:auto}
+.note{display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--exam-soft);color:var(--exam);font-size:14px;font-weight:600;border:1px solid var(--exam-line);box-shadow:var(--glow-soft);text-shadow:0 0 10px var(--exam-line)}
+.note i{font-size:17px}
+
+/* timeline */
+.sh{display:flex;align-items:baseline;justify-content:space-between;margin:28px 0 8px}
+.sh h2{margin:0;font-size:17px;font-weight:600}
+.sh span{font-size:13px;color:var(--muted)}
+.tl{display:flex;flex-direction:column}
+.row{display:grid;grid-template-columns:50px 22px 1fr;column-gap:8px}
+.row .t{padding-top:11px;text-align:start;line-height:1.25}
+.row .t .num{display:block;font-size:13.5px;color:var(--ink)}
+.row .t .num+.num{font-size:11.5px;color:var(--faint)}
+.rail-v{position:relative}
+.rail-v::before{content:"";position:absolute;inset-block:0;left:50%;width:1.5px;margin-left:-.75px;background:var(--line)}
+.row:first-child .rail-v::before{top:18px}
+.row:last-child .rail-v::before{bottom:calc(100% - 18px)}
+.rail-v i{position:absolute;top:13px;left:50%;width:11px;height:11px;margin-left:-5.5px;border-radius:50%;background:var(--bg);border:2px solid var(--faint)}
+.c{margin-block:4px;padding:9px 12px;border-radius:14px;min-width:0;background:var(--surface);border:1px solid var(--line)}
+.c .s{font-weight:500;font-size:16.5px;line-height:1.3}
+.c .m{font-size:13.5px;color:var(--muted)}
+.c .g+.g{margin-top:6px;padding-top:6px;border-top:1px solid var(--line)}
+.row.past .t,.row.past .c{opacity:.45}
+.row.past .rail-v i{background:var(--faint);border-color:var(--faint)}
+.row.cur .c{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+.row.cur .rail-v i{border-color:var(--accent);background:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 15%,transparent)}
+.row.cur .t .num:first-child{color:var(--accent)}
+.row.exam .rail-v i{border-color:var(--exam);box-shadow:0 0 8px var(--exam)}
+.row.exam .c{background:var(--exam-soft);border-color:var(--exam-line);box-shadow:var(--glow-soft)}
+.row.exam .t .num:first-child{color:var(--exam)}
+.xb .xt{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.xb .xt b{font-size:17px;font-weight:600;color:var(--exam);text-shadow:0 0 14px var(--exam-line)}
+.xb .tag{margin:0}
+.c .dbl{display:inline-block;margin-inline-start:8px;padding:0 7px;border-radius:6px;border:1px solid var(--line);font-size:11px;line-height:17px;color:var(--muted);vertical-align:2px}
+.row.cur.exam .c{border-color:var(--exam)}
+.row.free .c{background:transparent;border-style:dashed}
+.row.free .c .s{color:var(--faint);font-weight:400}
+.c .bar{height:3px;margin-top:8px;border-radius:3px;background:color-mix(in srgb,var(--accent) 20%,transparent);overflow:hidden}
+.c .bar span{display:block;height:100%;width:var(--p);background:var(--accent);border-radius:3px}
+.row.exam .c .bar{background:color-mix(in srgb,var(--exam) 20%,transparent)}.row.exam .c .bar span{background:var(--exam);box-shadow:0 0 8px var(--exam)}
+.tag{display:inline-block;margin-inline-start:8px;padding:0 8px;border-radius:6px;font-size:11.5px;font-weight:700;line-height:19px;vertical-align:2px;background:var(--exam);color:#fff;box-shadow:var(--glow);animation:glow 2.6s ease-in-out infinite}
+@keyframes glow{50%{box-shadow:0 0 0 1px var(--exam),0 0 20px var(--exam)}}
+.tag.sub{background:var(--raised);color:var(--ink);box-shadow:none;animation:none;border:1px solid var(--line)}
+.gap .rail-v::before{background:none;border-inline-start:1.5px dashed var(--line);width:0;margin-left:-.75px}
+.gap .c{background:none;border:0;padding-block:2px;font-size:12.5px;color:var(--faint)}
+.enter>*{animation:rise .32s var(--ease) both;animation-delay:calc(var(--i,0)*30ms)}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}}
+
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding:40px 20px;border-radius:20px;background:var(--surface);border:1px solid var(--line);color:var(--muted);font-size:14.5px}
+.empty i{font-size:28px;color:var(--faint);margin-bottom:6px}
+.empty b{font-size:17px;font-weight:600;color:var(--ink)}
+.skel{height:52px;margin-bottom:8px;border-radius:14px;background:linear-gradient(90deg,var(--surface) 30%,var(--raised) 50%,var(--surface) 70%);background-size:300% 100%;animation:sh 1.4s linear infinite}
+@keyframes sh{to{background-position:-300% 0}}
+.foot{display:flex;justify-content:center;gap:10px;margin-top:26px;font-size:12.5px;color:var(--faint)}
+.foot button{color:var(--muted);display:inline-flex;align-items:center;gap:4px}
+.foot .err{color:var(--exam)}
+
+/* exams */
+.segc{display:grid;grid-template-columns:1fr 1fr;padding:4px;border-radius:14px;background:var(--surface);border:1px solid var(--line);margin-top:18px}
+.segc button{padding:7px;border-radius:10px;font-size:14px;font-weight:500;color:var(--muted)}
+.segc button[aria-pressed=true]{background:var(--raised);color:var(--ink)}
+.nx{display:flex;align-items:center;gap:16px;margin-top:16px;padding:16px;border-radius:20px;background:var(--surface);border:1px solid var(--line)}
+.nx .k{font-size:13px;color:var(--exam);font-weight:500}
+.nx h3{margin:2px 0;font-size:21px;line-height:1.25;font-weight:600;font-variation-settings:"opsz" 18}
+.nx .w{font-size:14px;color:var(--muted)}
+.nx .cd{margin-inline-start:auto;flex-shrink:0;min-width:64px;text-align:center;padding:10px 8px;border-radius:14px;background:var(--exam-soft);color:var(--exam);line-height:1}
+.nx .cd .num{font-size:28px;font-weight:500}
+.nx .cd small{display:block;margin-top:4px;font-size:12px}
+.nx .cd.word{font-size:18px;font-weight:600;padding-block:16px}
+.gh{margin:24px 2px 8px;font-size:13px;font-weight:500;color:var(--muted)}
+.el{border-radius:18px;background:var(--surface);border:1px solid var(--line);overflow:hidden}
+.er{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;padding:12px 14px}
+.er+.er{border-top:1px solid var(--line)}
+.er .d{text-align:center;line-height:1.1}
+.er .d .num{display:block;font-size:20px;font-weight:500}
+.er .d small{font-size:11.5px;color:var(--muted)}
+.er .x{min-width:0}
+.er .x b{display:block;font-weight:500;font-size:15.5px;line-height:1.3}
+.er .x span{font-size:13px;color:var(--muted)}
+.er .in{font-size:12.5px;color:var(--faint)}
+.er.k-exam .d .num{color:var(--exam)}
+.er.k-holiday .d .num{color:var(--calm)}
+.er.soon .in{color:var(--exam);font-weight:600;text-shadow:0 0 10px color-mix(in srgb,var(--exam) 60%,transparent)}
+.nx{border-color:var(--exam-line);box-shadow:var(--glow-soft)}
+.nx .cd{border:1px solid color-mix(in srgb,var(--exam) 50%,transparent);box-shadow:0 0 18px color-mix(in srgb,var(--exam) 25%,transparent);text-shadow:0 0 12px color-mix(in srgb,var(--exam) 50%,transparent)}
+.about{margin-top:14px;text-align:center;font-size:12.5px;color:var(--faint)}
+
+/* tab bar */
+.tabbar{position:fixed;inset:auto 0 0;z-index:8;padding:6px max(18px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));
+  background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);border-top:1px solid var(--line)}
+.tabbar .in{max-width:540px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr}
+.tabbar button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;font-size:12px;font-weight:500;color:var(--faint)}
+.tabbar button i{font-size:24px}
+.tabbar button[aria-selected=true]{color:var(--ink)}
+.tabbar button[aria-selected=true] i{color:var(--accent)}
+.ti{position:relative}
+.badge{position:absolute;top:-3px;inset-inline-end:-9px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:var(--exam);color:var(--bg);font:600 10.5px/16px var(--sans);font-feature-settings:"tnum" 1}
+
+/* sheet */
+.scrim{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .25s ease}
+.sheet{position:fixed;inset:auto 0 0;z-index:21;max-height:90dvh;overflow:auto;background:var(--surface);border-top:1px solid var(--line);border-radius:24px 24px 0 0;
+  padding:10px max(18px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));transform:translateY(105%);visibility:hidden;transition:transform .42s var(--drawer),visibility 0s linear .42s}
+.open .scrim{opacity:1;pointer-events:auto}.open .sheet{transform:none;visibility:visible;transition:transform .42s var(--drawer),visibility 0s}
+.sheet .in{max-width:540px;margin:0 auto}
+.grab{width:36px;height:4px;border-radius:4px;background:var(--line);margin:0 auto 16px}
+.sheet h2{margin:0;font-size:22px;font-weight:600;font-variation-settings:"opsz" 18}
+.sheet .sub{margin:4px 0 20px;color:var(--muted);font-size:14px}
+.f{margin-bottom:20px}
+.f>label,.f>.l{display:block;margin-bottom:8px;font-size:13.5px;font-weight:500;color:var(--muted)}
+.f input{width:100%;height:48px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-size:16px}
+.gr{display:grid;grid-template-columns:44px 1fr;align-items:center;gap:8px;margin-bottom:8px}
+.gr span{font-size:13px;color:var(--faint)}
+.gr .r{display:flex;flex-wrap:wrap;gap:6px}
+.gr button{min-width:54px;height:40px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-weight:500;font-size:15px}
+.gr button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+.th{display:grid;grid-template-columns:repeat(3,1fr);padding:4px;border-radius:12px;background:var(--bg);border:1px solid var(--line)}
+.th button{padding:8px;border-radius:9px;font-size:14px;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:6px}
+.th button[aria-pressed=true]{background:var(--raised);color:var(--ink)}
+.cta{width:100%;height:50px;border-radius:14px;background:var(--ink);color:var(--bg);font-weight:600;font-size:16px}
+
+.ptr{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);left:50%;z-index:9;transform:translate(-50%,var(--y,-60px));padding:6px 14px;border-radius:999px;background:var(--raised);border:1px solid var(--line);font-size:13px;color:var(--muted);transition:transform .25s var(--ease);pointer-events:none}
+.ptr.drag{transition:none}
+.upd{position:fixed;inset-inline:max(18px,env(safe-area-inset-left,0px));bottom:calc(80px + env(safe-area-inset-bottom,0px));z-index:9;max-width:504px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:10px 10px 10px 14px;border-radius:16px;background:var(--raised);border:1px solid var(--exam-line);box-shadow:var(--glow-soft),0 10px 30px rgba(0,0,0,.35);font-size:14px}
+.upd span{flex:1}
+.upd a,.upd button{padding:7px 12px;border-radius:10px;background:var(--exam);color:#fff;font-weight:600;font-size:13.5px;text-decoration:none}
+/* ---- week view toggle ---- */
+.sh{align-items:center}
+.sh>div:first-child{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.vt{display:grid;grid-template-columns:1fr 1fr;padding:3px;border-radius:10px;background:var(--surface);border:1px solid var(--line)}
+.vt button{padding:4px 12px;border-radius:7px;font-size:13px;color:var(--muted)}
+.vt button[aria-pressed=true]{background:var(--raised);color:var(--ink);font-weight:600}
+.row[data-k]{cursor:pointer}
+.row[data-k] .c{transition:transform .14s var(--ease),border-color .2s ease}
+.row[data-k]:active .c{transform:scale(.985)}
+/* ---- week grid ---- */
+.wg{display:grid;grid-template-columns:26px repeat(5,minmax(0,1fr));grid-template-rows:auto repeat(var(--rows),minmax(44px,auto));gap:4px}
+.wh{display:flex;flex-direction:column;align-items:center;padding:6px 0;border-radius:10px;font-size:11.5px;color:var(--muted);line-height:1.2}
+.wh b{font-size:14px;color:var(--ink);font-weight:600}
+.wh.today b{color:var(--exam)}
+.wh.sel{background:var(--surface);box-shadow:inset 0 0 0 1px var(--line)}
+.wn{display:grid;place-items:center;font-size:12px;color:var(--faint)}
+.wc{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0;padding:4px 2px;border-radius:10px;background:var(--surface);border:1px solid var(--line);font-size:12px;font-weight:500;line-height:1.15;text-align:center}
+.wc::before{content:"";position:absolute;inset-block:8px;inset-inline-start:-1px;width:3px;border-radius:3px;background:var(--c)}
+.wc span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;padding-inline:3px}
+.wc.past{opacity:.5}
+.wc.cur{border-color:color-mix(in srgb,var(--accent) 55%,transparent);background:var(--accent-soft)}
+.wc.ex{background:var(--exam-soft);border-color:var(--exam-line);box-shadow:var(--glow-soft);color:var(--exam)}
+.wc.ex::before{background:var(--exam)}
+.wc.ex i{font-size:14px;filter:drop-shadow(0 0 6px var(--exam-line))}
+.wx{display:flex;align-items:flex-start;justify-content:center;padding:10px 4px;border-radius:10px;border:1px dashed var(--line);font-size:11px;line-height:1.3;color:var(--faint);text-align:center}
+/* ---- subject page ---- */
+.sjh{display:flex;align-items:center;gap:12px}
+.sjh h2{margin:0}
+.sjh .sub{margin:2px 0 0}
+.sjd{width:14px;height:14px;border-radius:50%;background:var(--c);box-shadow:0 0 0 4px color-mix(in srgb,var(--c) 22%,transparent);flex-shrink:0}
+.sjs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0 6px}
+.sjs>div{padding:12px 8px;border-radius:14px;background:var(--bg);border:1px solid var(--line);text-align:center;line-height:1.2}
+.sjs b{display:block;font-size:20px;font-weight:600}
+.sjs small{display:block;margin-top:4px;font-size:12px;color:var(--muted)}
+.sjs .hot{border-color:var(--exam-line);box-shadow:var(--glow-soft)}.sjs .hot b{color:var(--exam);text-shadow:0 0 12px var(--exam-line)}
+.sjt{margin:20px 2px 8px;font-size:13.5px;font-weight:600;color:var(--muted)}
+.sjn{margin:0;padding:14px;border-radius:14px;border:1px dashed var(--line);color:var(--faint);font-size:14px;text-align:center}
+.sjo{width:100%;text-align:start}
+.sjo.now{background:var(--accent-soft)}
+.sjo .d b{font-size:16px}
+#sj .sheet{z-index:23}#sj .scrim{z-index:22}
+/* ---- settings extras ---- */
+.ecs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.ecs button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-size:13px;color:var(--muted)}
+.ecs i{width:22px;height:22px;border-radius:50%}
+.ecs [data-e=blue] i{background:#4C9BFF;box-shadow:0 0 12px #4C9BFF}.ecs [data-e=purple] i{background:#A78BFA;box-shadow:0 0 12px #A78BFA}
+.ecs [data-e=green] i{background:#34D399;box-shadow:0 0 12px #34D399}.ecs [data-e=pink] i{background:#F472B6;box-shadow:0 0 12px #F472B6}
+.ecs button[aria-pressed=true]{border-color:var(--exam-line);color:var(--ink);background:var(--exam-soft)}
+.hint{display:flex;gap:10px;align-items:flex-start;margin:0;padding:12px 14px;border-radius:14px;background:var(--bg);border:1px solid var(--line);font-size:13.5px;color:var(--muted)}
+.hint i{font-size:20px;color:var(--exam)}
+.reset{display:block;margin:12px auto 0;padding:8px 14px;border-radius:10px;font-size:13px;color:var(--faint)}
+/* ---- exam colour choices ---- */
+:root[data-ec=purple]{--exam:#A78BFA;--exam-soft:rgba(167,139,250,.12);--exam-line:rgba(167,139,250,.55);--glow:0 0 0 1px rgba(167,139,250,.7),0 0 16px rgba(167,139,250,.55);--glow-soft:0 0 22px rgba(167,139,250,.22)}
+:root[data-ec=green]{--exam:#34D399;--exam-soft:rgba(52,211,153,.11);--exam-line:rgba(52,211,153,.5);--glow:0 0 0 1px rgba(52,211,153,.7),0 0 16px rgba(52,211,153,.5);--glow-soft:0 0 22px rgba(52,211,153,.2)}
+:root[data-ec=pink]{--exam:#F472B6;--exam-soft:rgba(244,114,182,.12);--exam-line:rgba(244,114,182,.55);--glow:0 0 0 1px rgba(244,114,182,.7),0 0 16px rgba(244,114,182,.55);--glow-soft:0 0 22px rgba(244,114,182,.22)}
+:root[data-theme=light][data-ec=purple]{--exam:#7C3AED;--exam-soft:rgba(124,58,237,.08);--exam-line:rgba(124,58,237,.45);--glow:0 0 0 1px rgba(124,58,237,.5),0 0 14px rgba(124,58,237,.3);--glow-soft:0 0 18px rgba(124,58,237,.14)}
+:root[data-theme=light][data-ec=green]{--exam:#047857;--exam-soft:rgba(4,120,87,.08);--exam-line:rgba(4,120,87,.45);--glow:0 0 0 1px rgba(4,120,87,.5),0 0 14px rgba(4,120,87,.3);--glow-soft:0 0 18px rgba(4,120,87,.14)}
+:root[data-theme=light][data-ec=pink]{--exam:#BE185D;--exam-soft:rgba(190,24,93,.08);--exam-line:rgba(190,24,93,.45);--glow:0 0 0 1px rgba(190,24,93,.5),0 0 14px rgba(190,24,93,.3);--glow-soft:0 0 18px rgba(190,24,93,.14)}
+.hr{margin:10px 0 0;padding:10px 12px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-size:13.5px;color:var(--muted)}
+.row.cur .c,.row.exam .c{position:relative}
+.c .left{position:absolute;top:10px;inset-inline-end:12px;padding:1px 8px;border-radius:999px;background:var(--raised);border:1px solid var(--line);font-size:12px;font-weight:600;color:var(--ink)}
+.row.exam .c .left{color:var(--exam);border-color:var(--exam-line)}
+.gap.brknow .c{color:var(--calm)}.gap.brknow .c b{display:inline-block;margin-inline-start:8px;padding:0 8px;border-radius:999px;background:var(--calm-soft);font-weight:600;font-size:12px}
+.wc .wl{font-size:10.5px;color:var(--muted)}
+.sjs .live{border-color:color-mix(in srgb,var(--accent) 40%,var(--line));background:var(--accent-soft)}
+.nowbar{position:relative;overflow:hidden;margin:6px 0 0;padding:10px 12px;border-radius:14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line));font-size:14px}
+.nowbar>div{display:flex;align-items:center;gap:8px;position:relative}.nowbar b{margin-inline-start:auto;font-weight:600}
+.nowbar>i{position:absolute;inset-block-end:0;inset-inline-start:0;height:3px;width:var(--p);background:var(--accent)}
+.soonx{display:flex;align-items:center;gap:8px;margin:10px 0 0;padding:10px 12px;border-radius:14px;background:var(--exam-soft);border:1px solid var(--exam-line);box-shadow:var(--glow-soft);font-size:14px}
+.soonx i{color:var(--exam);font-size:17px}.soonx b{color:var(--exam);text-shadow:0 0 10px var(--exam-line)}
+.fx{display:inline-block;margin-inline-start:8px;padding:0 8px;border-radius:999px;border:1px dashed var(--line);font-size:11.5px;color:var(--muted)}
+.wh .fxs{font-size:9.5px;color:var(--faint)}
+.wc.exp{border-style:dashed}
+.hint2{margin:-2px 0 8px;font-size:12.5px;color:var(--faint)}
+.rule{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;margin-bottom:6px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-size:14px}
+.rule b{font-weight:600}.rule button{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--faint)}
+.radd{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
+.radd select,.radd input{height:40px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:0 8px;font-size:14px}
+.radd input{flex:1;min-width:120px}.radd span{font-size:13px;color:var(--muted)}
+.radd button{width:40px;height:40px;border-radius:10px;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-size:18px}
+.grab{width:44px;height:5px;margin-bottom:14px;cursor:grab;position:relative}
+.grab::after{content:"";position:absolute;inset:-14px -40px}
+/* news */
+.news{display:flex;align-items:center;gap:10px;margin-top:12px;padding:9px 8px 9px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-size:14px}
+.news>i{font-size:18px;color:var(--muted)}
+.news span{flex:1;min-width:0}
+.news button{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:var(--faint)}
+/* roast fixes */
+.day[aria-pressed=true]{background:var(--raised);color:var(--ink);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 35%,transparent)}
+.day[aria-pressed=true] b{color:var(--ink);font-weight:700}
+.day[aria-pressed=true] .num{color:var(--muted)}
+.row.past .t,.row.past .c{opacity:.62}
+.c .m2{margin-top:4px;font-size:12.5px;color:var(--faint)}
+.tag i{font-size:12px;margin-inline-end:3px;vertical-align:-1px}
+.tag.soft{background:transparent;color:var(--exam);border:1px solid var(--exam-line);box-shadow:none;animation:none}
+.row.marked .c{border-color:var(--exam-line);border-style:dashed}
+.row.marked .rail-v i{border-color:var(--exam)}
+.row.marked .xt b{color:var(--ink);text-shadow:none;font-weight:500;font-size:16.5px}
+.hid{display:block;width:100%;margin-block:2px 8px;padding:9px;border-radius:12px;border:1px dashed var(--line);font-size:13px;color:var(--muted)}
+.xchip{display:inline-flex;align-items:center;gap:8px;margin-top:12px;padding:8px 14px 8px 12px;border-radius:12px;background:var(--exam-soft);border:1px solid var(--exam-line);box-shadow:var(--glow-soft);color:var(--ink);font-size:14px;text-align:start}
+.xchip i{font-size:18px;color:var(--exam);filter:drop-shadow(0 0 6px var(--exam-line))}
+.xchip b{color:var(--exam);font-weight:600;text-shadow:0 0 10px var(--exam-line)}
+.th2{grid-template-columns:1fr 1fr}
+.sws{border-radius:14px;border:1px solid var(--line);background:var(--bg);overflow:hidden}
+.swr{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:12px 14px;text-align:start}
+.swr+.swr{border-top:1px solid var(--line)}
+.swr span{min-width:0}.swr b{display:block;font-weight:500;font-size:15px}.swr small{font-size:12.5px;color:var(--muted)}
+.swr i{position:relative;flex-shrink:0;width:44px;height:26px;border-radius:999px;background:var(--raised);border:1px solid var(--line);transition:background-color .2s ease}
+.swr i::after{content:"";position:absolute;top:2px;inset-inline-start:2px;width:20px;height:20px;border-radius:50%;background:var(--muted);transition:transform .22s var(--ease),background-color .2s ease}
+.swr[aria-checked=true] i{background:var(--exam);border-color:var(--exam)}
+.swr[aria-checked=true] i::after{background:#fff;transform:translateX(-18px)}
+.acts2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.acts2 button{display:flex;align-items:center;justify-content:center;gap:6px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-size:14px;color:var(--ink)}
+.acts2 button:only-child,.acts2 button:not([hidden]):first-child:nth-last-child(2):has(+[hidden]){grid-column:1/-1}
+.tabbar button .ti{display:grid;place-items:center;width:56px;height:30px;border-radius:999px;transition:background-color .2s ease}
+.tabbar button[aria-selected=true] .ti{background:var(--accent-soft)}
+.badge{top:-2px;inset-inline-end:6px;box-shadow:0 0 0 2px var(--bg)}
+:root[data-size=lg] body{zoom:1.1}
+:root[data-glow=off],:root[data-glow=off][data-ec]{--glow:none;--glow-soft:none}
+:root[data-glow=off] .glow,:root[data-glow=off] .xb .xt b,:root[data-glow=off] .note,:root[data-glow=off] .xchip b,:root[data-glow=off] .er.soon .in,:root[data-glow=off] .nx .cd{text-shadow:none}
+:root[data-glow=off] .tag{animation:none}
+:root[data-glow=off] .day .mark,:root[data-glow=off] .row.exam .rail-v i{box-shadow:none}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="wrap hd">
+  <div class="hd-row">
+    <span class="date" id="date"></span>
+    <div class="acts">
+      <button class="cls" id="clsBtn" aria-label="החלפת כיתה">ט׳3</button>
+      <button class="gear" id="gearBtn" aria-label="הגדרות"><i class="ph ph-gear-six"></i></button>
+    </div>
+  </div>
+  <h1 id="hello">שלום</h1>
+  <p class="sum" id="sum">טוען את המערכת…</p>
+  <button class="xchip" id="xchip" hidden></button>
+  <div class="news" id="news" hidden></div>
+</header>
+
+<div class="week" id="weekBar"><div class="wrap"><div class="days" id="days" role="toolbar" aria-label="ימי השבוע"></div></div></div>
+
+<main class="wrap">
+  <section id="vS">
+    <div id="nowBox"></div>
+    <div class="sh" id="lh" hidden><div><h2 id="lt"></h2><span id="ls"></span></div><div class="vt" id="vt" role="group" aria-label="תצוגה"><button data-v="day">יום</button><button data-v="week">שבוע</button></div></div>
+    <div class="tl" id="list"></div>
+  </section>
+  <section id="vE" hidden>
+    <div class="segc" role="group"><button id="fEx" aria-pressed="true">מבחנים</button><button id="fAll" aria-pressed="false">כל האירועים</button></div>
+    <div id="exList"></div>
+  </section>
+  <div class="foot" id="foot"></div>
+</main>
+
+<div class="ptr" id="ptr">משכו לרענון</div>
+<div class="upd" id="upd" hidden></div>
+<nav class="tabbar"><div class="in" role="tablist">
+  <button role="tab" id="tS" aria-selected="true"><span class="ti"><i id="iS" class="ph-fill ph-calendar-blank"></i></span>מערכת</button>
+  <button role="tab" id="tE" aria-selected="false"><span class="ti"><i id="iE" class="ph ph-pencil-simple-line"></i><span class="badge" id="badge" hidden></span></span>מבחנים</button>
+</div></nav>
+
+<div id="sj" class="sjw">
+  <div class="scrim" id="sjScrim"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sjT"><div class="in" id="sjBody"></div></div>
+</div>
+<div id="sw">
+  <div class="scrim" id="scrim"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="shT"><div class="in">
+    <div class="grab"></div>
+    <h2 id="shT">הגדרות</h2>
+    <p class="sub" id="shS">הכל נשמר רק בטלפון שלך.</p>
+    <div class="f"><label for="nameIn">השם שלך</label><input id="nameIn" autocomplete="given-name" placeholder="למשל: תום" maxlength="20"></div>
+    <div class="f"><span class="l">הכיתה שלך</span><div id="grades"></div><p class="hr" id="hrT" hidden></p></div>
+    <div class="f"><span class="l">מראה</span><div class="th" id="themes">
+      <button data-t="dark"><i class="ph ph-moon"></i>כהה</button><button data-t="light"><i class="ph ph-sun"></i>בהיר</button><button data-t="auto"><i class="ph ph-circle-half"></i>אוטומטי</button>
+    </div></div>
+    <div class="f"><span class="l">גודל טקסט</span><div class="th th2" id="sizes"><button data-s="md">רגיל</button><button data-s="lg">גדול</button></div></div>
+    <div class="f"><span class="l">צבע המבחנים</span><div class="ecs" id="ecs">
+      <button data-e="blue" aria-label="כחול"><i></i>כחול</button><button data-e="purple" aria-label="סגול"><i></i>סגול</button><button data-e="green" aria-label="ירוק"><i></i>ירוק</button><button data-e="pink" aria-label="ורוד"><i></i>ורוד</button>
+    </div></div>
+    <div class="f"><span class="l">תצוגה</span><div class="sws" id="sws">
+      <button class="swr" data-k="glow" role="switch"><span><b>הדגשה זוהרת למבחנים</b><small>מבחנים מאירים בצבע שבחרת</small></span><i></i></button>
+      <button class="swr" data-k="teachers" role="switch"><span><b>שמות מורים</b><small>מתחת לכל שיעור</small></span><i></i></button>
+      <button class="swr" data-k="breaks" role="switch"><span><b>הפסקות</b><small>כמה זמן יש בין שיעורים</small></span><i></i></button>
+      <button class="swr" data-k="hidePast" role="switch"><span><b>הסתרת שיעורים שנגמרו</b><small>רק מה שנשאר להיום</small></span><i></i></button>
+      <button class="swr" data-k="remind" role="switch" id="swRemind" hidden><span><b>תזכורות למבחנים</b><small>התראה בערב שלפני ובבוקר של המבחן</small></span><i></i></button>
+      <button class="swr" data-k="auto" role="switch"><span><b>מעבר אוטומטי למחר</b><small>אחרי סוף הלימודים מוצג היום הבא</small></span><i></i></button>
+    </div></div>
+    <div class="f"><span class="l">השיעורים הקבועים שלי</span>
+      <p class="hint2">שיעור שקבעת כאן תמיד יוצג כך, גם אם במערכת כתוב משהו אחר.</p>
+      <div id="rules"></div>
+      <div class="radd" id="radd">
+        <select id="rDay" aria-label="יום"><option value="0">ראשון</option><option value="1">שני</option><option value="2">שלישי</option><option value="3">רביעי</option><option value="4">חמישי</option></select>
+        <select id="rFrom" aria-label="משיעור"></select><span>עד</span><select id="rTo" aria-label="עד שיעור"></select>
+        <input id="rSub" placeholder="מקצוע, למשל רחפנים" maxlength="24" aria-label="מקצוע">
+        <button id="rAdd" aria-label="הוספה"><i class="ph ph-plus"></i></button>
+      </div>
+    </div>
+    <div class="f" id="wHint" hidden><span class="l">ווידג׳ט</span><p class="hint"><i class="ph ph-squares-four"></i>אפשר להוסיף את Handasaim למסך הבית: לחיצה ארוכה על המסך, ווידג׳טים, Handasaim. הוא מראה את השיעור הנוכחי, הבא ואת המבחן הקרוב.</p></div>
+    <div class="acts2"><button id="rfNow"><i class="ph ph-arrow-clockwise"></i>רענון המערכת</button><button id="chkUpd" hidden><i class="ph ph-cloud-arrow-down"></i>בדיקת עדכונים</button></div>
+    <button class="cta" id="save">סיום</button>
+    <button class="reset" id="resetBtn">איפוס האפליקציה</button>
+    <p class="about" id="updInfo"></p>
+    <p class="about" id="about">המערכת והמבחנים מתעדכנים לבד מאתר הנדסאים, כל 15 דקות ובכל פתיחה.</p>
+  </div></div>
+</div>
+
+<script>
+const KEY="AIzaSyAcH6kj2INKBW0-YyXu9mcMo6DCCbamaiw";
+const DB="https://firestore.googleapis.com/v1/projects/handasaim-website/databases/(default)/documents";
+const REFRESH=15*60*1000;
+const FALLBACK=["ז 1","ז 2","ח 1","ח 2","ט 1","ט 2","ט 3","י 1","י 2","י 3","י 4","יא 1","יא 2","יא 3","יא 4","יב 1","יב 2","יב 3","יב 4"];
+const FIX={"מעבדת פיזיקה":"פיזיקה","שעת מחנך":"חינוך","מדעי המחשב 1":"מדעי המחשב","מדעי המחשב 2":"מדעי המחשב","סייבר 1":"סייבר","סייבר 2":"סייבר","מעבדת ביו":"מעבדת ביולוגיה","רחפנים-רובוטיקה-מדעי":"רחפנים ורובוטיקה","FRC":"רובוטיקה FRC","FTC":"רובוטיקה FTC","פרויקט טכנולוגי רחפנים":"פרויקט רחפנים","מורשת סיור":"סיור מורשת"};
+/* spelling + Hebrew punctuation, used on every subject and calendar title */
+const heb=t=>String(t||"").replace(/פיסיק/g,"פיזיק").replace(/([א-ת])"([א-ת])/g,"$1״$2").replace(/([א-ת])'/g,"$1׳").replace(/^[\s,.\-–]+|[\s,.\-–]+$/g,"").replace(/(\d)([א-ת])/g,"$1 $2").replace(/\s{2,}/g," ").trim();
+const EXS={english:"אנגלית",math:"מתמטיקה",history:"היסטוריה",hebrew:"לשון",lashon:"לשון",bible:"תנ״ך",tanach:"תנ״ך",literature:"ספרות",physics:"פיזיקה",chemistry:"כימיה",biology:"ביולוגיה",biotech:"ביוטכנולוגיה",cs:"מדעי המחשב","computer-science":"מדעי המחשב",computer_science:"מדעי המחשב",science:"מדעים",civics:"אזרחות",geography:"גאוגרפיה",french:"צרפתית",arabic:"ערבית",electricity:"חשמל","digital-systems":"מערכות ספרתיות","traffic-ed":"חינוך תעבורתי","financial-ed":"חינוך פיננסי",pe:"חינוך גופני",engineering:"טכנולוגיה",cyber:"סייבר",psychology:"פסיכולוגיה"};
+const DAYS=["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"],DL="אבגדהוש";
+const $=id=>document.getElementById(id);
+const ls={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+const S={cls:ls.get("cls","ט 3"),name:ls.get("name",""),theme:ls.get("theme","dark"),tab:"s",exF:"exam",sel:null,manual:false,
+  avail:ls.get("avail",[]),docs:ls.get("docs",{}),events:ls.get("events",[]),classes:ls.get("classes",FALLBACK),at:ls.get("fetchedAt",0),err:"",busy:false,
+  news:ls.get("news",[]),pref:Object.assign({teachers:true,hidePast:false,size:"md",glow:true,auto:true,view:"day",breaks:true,ec:"blue",remind:true},ls.get("pref",{}))};
+if(ls.get("docsV",0)!==2){S.docs={};S.avail=[];ls.set("docsV",2)}
+function applyPref(){const r=document.documentElement;r.dataset.size=S.pref.size;r.dataset.glow=S.pref.glow?"on":"off";r.dataset.ec=S.pref.ec}
+applyPref();
+
+/* theme */
+const mq=matchMedia("(prefers-color-scheme: light)");
+function applyTheme(t=S.theme){const r=t==="auto"?(mq.matches?"light":"dark"):t;document.documentElement.dataset.theme=r;const c=r==="light"?"#F4F5F7":"#0E0F12";$("themeColor").content=c;try{window.Native&&Native.setBars(c,r==="light")}catch{}}
+applyTheme();mq.addEventListener?.("change",()=>S.theme==="auto"&&applyTheme());
+
+/* helpers */
+const pad=n=>String(n).padStart(2,"0");
+const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const P=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+const add=(s,n)=>{const d=P(s);d.setDate(d.getDate()+n);return ymd(d)};
+const today=()=>ymd(new Date());
+const mins=t=>{const[h,m]=(t||"0:0").split(":").map(Number);return h*60+m};
+const nowM=()=>{const d=new Date();return d.getHours()*60+d.getMinutes()+d.getSeconds()/60};
+const fix=s=>{s=heb((s||"").replace(/(^|\s)תלן(?=\s|$)/g," "));return FIX[s]||s};
+/* a lesson cell that is itself an exam: "מבחן באזרחות חדר 202" */
+const EXW=/^(מבחן|בוחן|מתכונת|בגרות|בחינה|מטלה)/;
+const cellExam=x=>{const t=fix(x.subject);if(!EXW.test(t))return null;const m=t.match(/\s*חדר\s*(\S+)/);return{t:t.replace(/\s*חדר\s*\S+/,"").trim(),room:m?m[1]:"",cell:true}};
+const base=s=>fix(s).replace(/\s*\d+$/,"");
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const N=s=>`<span class="num">${s}</span>`;
+const fmtT=t=>String(t||"").replace(/^0(\d)/,"$1");
+const T=t=>`<span class="num">${fmtT(t).replace(":",'<i class="co">:</i>')}</span>`;
+const split=c=>{const m=c.match(/^(\S+)\s*(\d+)$/);return m?[m[1],m[2]]:[c,""]};
+const gl=g=>g.length===1?g+"׳":g[0]+"״"+g.slice(1);
+const cl=c=>{const[g,n]=split(c);return gl(g)+n};
+const diff=s=>Math.round((P(s)-P(today()))/864e5);
+const rel=s=>{const n=diff(s);return n===0?"היום":n===1?"מחר":"ביום "+DAYS[P(s).getDay()]};
+const dm=s=>{const d=P(s);return`${d.getDate()}.${d.getMonth()+1}`};
+const greet=()=>{const h=new Date().getHours();return h<5?"לילה טוב":h<12?"בוקר טוב":h<17?"צהריים טובים":h<21?"ערב טוב":"לילה טוב"};
+function dec(v){if(!v)return null;if("stringValue"in v)return v.stringValue;if("integerValue"in v)return+v.integerValue;if("doubleValue"in v)return v.doubleValue;
+  if("booleanValue"in v)return v.booleanValue;if("timestampValue"in v)return v.timestampValue;if("mapValue"in v){const o={};for(const[k,x]of Object.entries(v.mapValue.fields||{}))o[k]=dec(x);return o}
+  if("arrayValue"in v)return(v.arrayValue.values||[]).map(dec);return null}
+const fields=d=>Object.fromEntries(Object.entries(d.fields||{}).map(([k,v])=>[k,dec(v)]));
+async function query(q){const r=await fetch(`${DB}:runQuery?key=${KEY}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({structuredQuery:q})});
+  if(!r.ok)throw new Error(r.status);return(await r.json()).filter(x=>x.document).map(x=>fields(x.document))}
+
+/* data */
+const wk=s=>add(s,-P(s).getDay());
+async function loadAvail(){
+  S.avail=(await query({from:[{collectionId:"schedules"}],select:{fields:[{fieldPath:"date"},{fieldPath:"uploaded_at"}]},
+    where:{fieldFilter:{field:{fieldPath:"date"},op:"GREATER_THAN_OR_EQUAL",value:{stringValue:wk(today())}}},orderBy:[{field:{fieldPath:"date"}}],limit:20}))
+    .map(r=>({date:r.date,up:r.uploaded_at}));
+}
+async function loadDoc(date){
+  const r=await fetch(`${DB}/schedules/${date}?key=${KEY}`);if(r.status===404){S.docs[date]=null;return null}if(!r.ok)throw new Error(r.status);
+  const f=fields(await r.json());if(f.classes?.length)S.classes=f.classes;
+  return S.docs[date]={date:f.date,up:f.uploaded_at,lessons:(f.lessons||[]).map(l=>({n:l.lesson_num,a:l.time_start,b:l.time_end,c:l.classes||{},x:l.cell_colors||{}}))};
+}
+async function loadEvents(){
+  S.events=(await query({from:[{collectionId:"calendarEvents"}],where:{fieldFilter:{field:{fieldPath:"end"},op:"GREATER_THAN_OR_EQUAL",value:{stringValue:add(today(),-1)}}},orderBy:[{field:{fieldPath:"end"}}],limit:500}))
+    .map(e=>({t:heb(e.title),s:e.start,e:e.end||e.start,tm:e.time||"",te:e.endTime||"",k:e.kind||"school",g:e.grades||[],c:e.classes||[],d:heb(e.description),l:e.location||"",sub:e.subject||""}));
+}
+async function refresh(){
+  try{window.Native&&Native.loadNews&&Native.loadNews()}catch{}
+  try{if(window.Native&&Native.loadStaff&&Date.now()-ls.get("staffAt",0)>864e5)Native.loadStaff()}catch{}
+  try{if(window.Native&&Native.loadWeekly&&Date.now()-ls.get("weeklyAt",0)>864e5)Native.loadWeekly()}catch{}
+  if(S.busy)return;S.busy=true;S.err="";foot();
+  try{
+    await Promise.all([loadAvail(),loadEvents()]);
+    const keep=new Set(S.avail.map(d=>d.date));for(const k of Object.keys(S.docs))if(!keep.has(k)||!S.docs[k])delete S.docs[k];
+    await Promise.all(S.avail.filter(d=>d.date>=wk(today())).map(d=>{const c=S.docs[d.date];return(!c||c.up!==d.up)?loadDoc(d.date):null}));
+    S.at=Date.now();ls.set("avail",S.avail);ls.set("docs",S.docs);ls.set("events",S.events);ls.set("classes",S.classes);ls.set("fetchedAt",S.at);
+  }catch(e){S.err=navigator.onLine?"לא הצלחנו להתעדכן":"אין חיבור לאינטרנט"}
+  S.busy=false;render(true);
+}
+
+/* logic */
+/* the school's fixed weekly timetable (handasaim.co.il/weekly): used for every day that isn't published yet */
+let WEEKLY=Object.assign({"ז 1":[[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"צרפתית","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"צרפתית","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"צרפתית","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"כימיה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"מדעי המחשב","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"מדעי המחשב","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"חינוך","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"אנגלית","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"כישורי חיים","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מורשת דמוקרטיה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מדעים","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מדעים","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"חינוך","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"אנגלית","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"היסטוריה","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"אנגלית","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"מתמטיקה","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"לשון והבעה עברית","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"לשון והבעה עברית","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"אנגלית","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"כימיה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"רובוטיקה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"רובוטיקה","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"רובוטיקה","teacher":""}]}]],"ז 2":[[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"צרפתית","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מדעים","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"צרפתית","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"צרפתית","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"תנ\"ך","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מדעי המחשב","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מדעי המחשב","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"חינוך","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"רובוטיקה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"רובוטיקה","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"רובוטיקה","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"כימיה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מדעים","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"אנגלית","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"אנגלית","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"לשון והבעה עברית","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"אנגלית","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מורשת דמוקרטיה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"לשון והבעה עברית","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"לשון והבעה עברית","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"לשון והבעה עברית","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"אנגלית","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"כימיה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"חינוך","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"כישורי חיים","teacher":""}]}]],"ח 1":[[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"צרפתית","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"אנגלית","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"אנגלית","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מורשת דמוקרטיה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"מדעי המחשב","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"מדעי המחשב","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"לשון והבעה עברית","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"לשון והבעה עברית","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"צרפתית","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"אנגלית","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"אנגלית","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"כימיה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"כימיה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"צרפתית","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"רובוטיקה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"רובוטיקה","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"רובוטיקה","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מדעים","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מדעים","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"לשון והבעה עברית","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"חינוך","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"חינוך","teacher":""}]}]],"ח 2":[[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מדעי המחשב","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מדעי המחשב","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"חינוך","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"תנ\"ך","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"לשון והבעה עברית","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מדעים","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"אנגלית","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"לשון והבעה עברית","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"צרפתית","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"צרפתית","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"חינוך","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מורשת דמוקרטיה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"אנגלית","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"אנגלית","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"צרפתית","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"אנגלית","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מדעים","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"מתמטיקה","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"כימיה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"כימיה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"לשון והבעה עברית","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"רובוטיקה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"רובוטיקה","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"רובוטיקה","teacher":""}]}]],"ט 1":[[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"אזרחות","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"אנגלית","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"חינוך","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"רחפנים-רובוטיקה-מדעי","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"רחפנים-רובוטיקה-מדעי","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"רחפנים-רובוטיקה-מדעי","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"אנגלית","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מדעים","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מדעים","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"לשון והבעה עברית","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"כימיה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"כימיה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"לשון והבעה עברית","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"צרפתית","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"חשמל ואלקטרוניקה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"צרפתית","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"היסטוריה","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"חינוך","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"צרפתית","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"אנגלית","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"מתמטיקה","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"אזרחות","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"חינוך פיננסי","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"לשון והבעה עברית","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"מדעי המחשב","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"מדעי המחשב","teacher":""}]}]],"ט 2":[[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"צרפתית","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"רחפנים-רובוטיקה-מדעי","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"רחפנים-רובוטיקה-מדעי","teacher":""},{"subject":"פרויקט טכנולוגי","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"פרויקט טכנולוגי","teacher":""},{"subject":"רחפנים-רובוטיקה-מדעי","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מדעים","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מדעים","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"חינוך","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"לשון והבעה עברית","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"אנגלית","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"מדעי המחשב","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"מדעי המחשב","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"אזרחות","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"חשמל ואלקטרוניקה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"כימיה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"כימיה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"צרפתית","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"חינוך","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"אנגלית","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"צרפתית","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"לשון והבעה עברית","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"פיזיקה","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"אזרחות","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"כישורי חיים","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"חינוך פיננסי","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"היסטוריה","teacher":""}]}]],"ט 3":[[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"לשון והבעה עברית","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"צרפתית","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"צרפתית","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"אזרחות","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"רחפנים-רובוטיקה-מדעי","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"פרויקט טכנולוגי","teacher":""},{"subject":"רחפנים-רובוטיקה-מדעי","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"פרויקט טכנולוגי","teacher":""},{"subject":"רחפנים-רובוטיקה-מדעי","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מדעי המחשב","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מדעי המחשב","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"כימיה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"צרפתית","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"מדעים","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"אנגלית","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"חינוך","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"לשון והבעה עברית","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"לשון והבעה עברית","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"אזרחות","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"אנגלית","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"חשמל ואלקטרוניקה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"אנגלית","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"כימיה","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"חינוך פיננסי","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"חינוך","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"מתמטיקה","teacher":""}]}]],"י 1":[[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"אנגלית","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""},{"subject":"מערכות ספרתיות","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"מערכות ספרתיות","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"אנגלית","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"כימיה","teacher":""},{"subject":"פיזיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"חינוך","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"ביוטכנולוגיה","teacher":""},{"subject":"מדעי המחשב","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"מדעי המחשב","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"נחשון","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"נחשון","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"נחשון","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"נחשון","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"נחשון","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"לשון","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"חינוך תעבורתי","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"FTC","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"FTC","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"סייבר","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"חשמל ואלקטרוניקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"חשמל ואלקטרוניקה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"כימיה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"כימיה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"אנגלית","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"ספרות","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"ספרות","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"FTC","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"מתמטיקה מואץ","teacher":""},{"subject":"מתמטיקה","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מתמטיקה מואץ","teacher":""},{"subject":"מתמטיקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"לשון","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"לשון","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"ספרות","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"אנגלית","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"ספרות","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"תנ\"ך","teacher":""}]}]],"י 2":[[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"חינוך תעבורתי","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""},{"subject":"מערכות ספרתיות","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"מערכות ספרתיות","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"לשון","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"אנגלית","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"ספרות","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"ביוטכנולוגיה","teacher":""},{"subject":"מדעי המחשב","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"מדעי המחשב","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"לשון","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"חינוך","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"לשון","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"FTC","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"FTC","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"FTC","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"סייבר","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"חשמל ואלקטרוניקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"חשמל ואלקטרוניקה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"כימיה","teacher":""},{"subject":"פיזיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"פסיכולוגיה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"חינוך גופני","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"מתמטיקה מואץ","teacher":""},{"subject":"מתמטיקה","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מתמטיקה מואץ","teacher":""},{"subject":"מתמטיקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"אנגלית","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"אנגלית","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"לשון","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"תנ\"ך","teacher":""}]}]],"י 3":[[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""},{"subject":"מערכות ספרתיות","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"מערכות ספרתיות","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"כימיה","teacher":""},{"subject":"פיזיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"לשון","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"פסיכולוגיה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"ביוטכנולוגיה","teacher":""},{"subject":"מדעי המחשב","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"מדעי המחשב","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"ספרות","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"לשון","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"ספרות","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"אנגלית","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"פסיכולוגיה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"אנגלית","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"אנגלית","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"חינוך תעבורתי","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"סייבר","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"חשמל ואלקטרוניקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"חשמל ואלקטרוניקה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"כימיה","teacher":""},{"subject":"פיזיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"אנגלית","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"היסטוריה","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"מתמטיקה מואץ","teacher":""},{"subject":"מתמטיקה","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מתמטיקה מואץ","teacher":""},{"subject":"מתמטיקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"אנגלית","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"לשון","teacher":""}]}]],"י 4":[[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"פסיכולוגיה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"לשון","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""},{"subject":"מערכות ספרתיות","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"מערכות ספרתיות","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"כימיה","teacher":""},{"subject":"פיזיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"ביוטכנולוגיה","teacher":""},{"subject":"מדעי המחשב","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"מדעי המחשב","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"ספרות","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"חינוך","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"אנגלית","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"אנגלית","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"אנגלית","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"ספרות","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"סייבר","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"חשמל ואלקטרוניקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"חשמל ואלקטרוניקה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"כימיה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"כימיה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"אנגלית","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"אנגלית","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"היסטוריה","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"מתמטיקה מואץ","teacher":""},{"subject":"מתמטיקה","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מתמטיקה מואץ","teacher":""},{"subject":"מתמטיקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"לשון","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"לשון","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"חינוך תעבורתי","teacher":""}]}]],"יא 1":[[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"חשמל ואלקטרוניקה","teacher":""},{"subject":"פיתוח אפליקציות","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"פיתוח אפליקציות","teacher":""},{"subject":"מדעי המחשב","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""},{"subject":"חשמל ואלקטרוניקה","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"מעבדת ביו","teacher":""},{"subject":"אלגוריתמיקה","teacher":""},{"subject":"סייבר","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"חשמל ואלקטרוניקה","teacher":""},{"subject":"מעבדת ביו","teacher":""},{"subject":"סייבר","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"חשמל ואלקטרוניקה","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"מעבדת ביו","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"לשון","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"אזרחות","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"מעבדת ביו","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"פיתוח אפליקציות","teacher":""},{"subject":"מדעי המחשב","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"פיתוח אפליקציות","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"מדעי המחשב","teacher":""},{"subject":"מעבדת ביו","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"פיתוח אפליקציות","teacher":""},{"subject":"מדעי המחשב","teacher":""},{"subject":"מעבדת ביו","teacher":""},{"subject":"סייבר","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"ספרות","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"אנגלית","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"לשון","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"לשון","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"ביוטכנולוגיה","teacher":""},{"subject":"מדעי המחשב","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"ביוטכנולוגיה","teacher":""},{"subject":"מדעי המחשב","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"סייבר","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"סייבר","teacher":""},{"subject":"יישומים בביוטכנולוגיה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"סייבר","teacher":""},{"subject":"יישומים בביוטכנולוגיה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"אזרחות","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"חינוך","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"אנגלית","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"היסטוריה","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"אנגלית","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מתמטיקה מואץ","teacher":""},{"subject":"מתמטיקה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"מעבדת כימיה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"מעבדת כימיה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"מעבדת כימיה","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"FRC","teacher":""}]}]],"יא 2":[[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"ספרות","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"ספרות","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"חשמל ואלקטרוניקה","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"חשמל ואלקטרוניקה","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"אלגוריתמיקה","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"חשמל ואלקטרוניקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"חשמל ואלקטרוניקה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"אזרחות","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"היסטוריה","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"אזרחות","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"אזרחות","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"לשון","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"לשון","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"חינוך","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"אנגלית","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"אנגלית","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"אנגלית","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"חינוך גופני","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"אנגלית","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מתמטיקה מואץ","teacher":""},{"subject":"מתמטיקה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"פיזיקה","teacher":""},{"subject":"מעבדת כימיה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"פיזיקה","teacher":""},{"subject":"מעבדת כימיה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"פיזיקה","teacher":""},{"subject":"מעבדת כימיה","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"FRC","teacher":""}]}]],"יא 3":[[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"ספרות","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"חשמל ואלקטרוניקה","teacher":""},{"subject":"פיתוח אפליקציות","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"פיתוח אפליקציות","teacher":""},{"subject":"מדעי המחשב","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""},{"subject":"חשמל ואלקטרוניקה","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"מעבדת ביו","teacher":""},{"subject":"אלגוריתמיקה","teacher":""},{"subject":"סייבר","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"חשמל ואלקטרוניקה","teacher":""},{"subject":"מעבדת ביו","teacher":""},{"subject":"סייבר","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"חשמל ואלקטרוניקה","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"מעבדת ביו","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"ספרות","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"לשון","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"היסטוריה","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"מעבדת ביו","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"פיתוח אפליקציות","teacher":""},{"subject":"מדעי המחשב","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"פיתוח אפליקציות","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"מדעי המחשב","teacher":""},{"subject":"מעבדת ביו","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"פיתוח אפליקציות","teacher":""},{"subject":"מדעי המחשב","teacher":""},{"subject":"מעבדת ביו","teacher":""},{"subject":"סייבר","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"לשון","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"לשון","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"אזרחות","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"אנגלית","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"ביוטכנולוגיה","teacher":""},{"subject":"מדעי המחשב","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"ביוטכנולוגיה","teacher":""},{"subject":"מדעי המחשב","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"סייבר","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"סייבר","teacher":""},{"subject":"יישומים בביוטכנולוגיה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"סייבר","teacher":""},{"subject":"יישומים בביוטכנולוגיה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"אנגלית","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"אזרחות","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"אזרחות","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"חינוך גופני","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"לשון","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"לשון","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מתמטיקה מואץ","teacher":""},{"subject":"מתמטיקה","teacher":""}]}]],"יא 4":[[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"אנגלית","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"חשמל ואלקטרוניקה","teacher":""},{"subject":"פיתוח אפליקציות","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"פיתוח אפליקציות","teacher":""},{"subject":"מדעי המחשב","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""},{"subject":"חשמל ואלקטרוניקה","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"מעבדת ביו","teacher":""},{"subject":"אלגוריתמיקה","teacher":""},{"subject":"סייבר","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"חשמל ואלקטרוניקה","teacher":""},{"subject":"מעבדת ביו","teacher":""},{"subject":"סייבר","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"מדעי המחשב","teacher":""},{"subject":"חשמל ואלקטרוניקה","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"מעבדת ביו","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"לשון","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"אזרחות","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"מעבדת ביו","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"פיתוח אפליקציות","teacher":""},{"subject":"מדעי המחשב","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"פיתוח אפליקציות","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"מדעי המחשב","teacher":""},{"subject":"מעבדת ביו","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"פיתוח אפליקציות","teacher":""},{"subject":"מדעי המחשב","teacher":""},{"subject":"מעבדת ביו","teacher":""},{"subject":"סייבר","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"אזרחות","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"לשון","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"לשון","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"ביוטכנולוגיה","teacher":""},{"subject":"מדעי המחשב","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"ביוטכנולוגיה","teacher":""},{"subject":"מדעי המחשב","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"סייבר","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"סייבר","teacher":""},{"subject":"יישומים בביוטכנולוגיה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"סייבר","teacher":""},{"subject":"יישומים בביוטכנולוגיה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"אזרחות","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"ספרות","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"היסטוריה","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"חינוך גופני","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"אנגלית","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""},{"subject":"מתמטיקה מואץ","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מתמטיקה מואץ","teacher":""},{"subject":"מתמטיקה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"פיזיקה","teacher":""},{"subject":"מעבדת כימיה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"פיזיקה","teacher":""},{"subject":"מעבדת כימיה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"פיזיקה","teacher":""},{"subject":"מעבדת כימיה","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"FRC","teacher":""}]}]],"יב 1":[[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"פיזיקה","teacher":""},{"subject":"מעבדת כימיה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"פיזיקה","teacher":""},{"subject":"מעבדת כימיה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"פיזיקה","teacher":""},{"subject":"מעבדת כימיה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"ספרות","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"אזרחות","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"אזרחות","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"ספרות","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"ספרות","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"טכנולוגיה מוכללת","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"ביוטכנולוגיה","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"ביוטכנולוגיה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"אזרחות","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"ביואינפורמטיקה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"ביואינפורמטיקה","teacher":""}]}],[{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"אנגלית","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"סייבר","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""},{"subject":"טכנולוגיה מוכללת","teacher":""},{"subject":"פיתוח אפליקציות","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"פיתוח אפליקציות","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"טכנולוגיה מוכללת","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"סייבר","teacher":""},{"subject":"טכנולוגיה מוכללת","teacher":""},{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"פיתוח אפליקציות","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"טכנולוגיה מוכללת","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"פיתוח אפליקציות","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"טכנולוגיה מוכללת","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"פיתוח אפליקציות","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"אנגלית","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"אזרחות","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"כימיה","teacher":""},{"subject":"פיזיקה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"FRC","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"FRC","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"FRC","teacher":""}]}]],"יב 2":[[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"פיזיקה","teacher":""},{"subject":"מעבדת כימיה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"פיזיקה","teacher":""},{"subject":"מעבדת כימיה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"פיזיקה","teacher":""},{"subject":"מעבדת כימיה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"אזרחות","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"ספרות","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"אזרחות","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"ספרות","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"טכנולוגיה מוכללת","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"חינוך","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"ספרות","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"ספרות","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"אזרחות","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"אנגלית","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"טכנולוגיה מוכללת","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"פיתוח אפליקציות","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"פיתוח אפליקציות","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"טכנולוגיה מוכללת","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"סייבר","teacher":""},{"subject":"טכנולוגיה מוכללת","teacher":""},{"subject":"פיתוח אפליקציות","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"טכנולוגיה מוכללת","teacher":""},{"subject":"פיתוח אפליקציות","teacher":""},{"subject":"סייבר","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"סייבר","teacher":""},{"subject":"טכנולוגיה מוכללת","teacher":""},{"subject":"פיתוח אפליקציות","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"אנגלית","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"פיזיקה","teacher":""},{"subject":"כימיה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"כימיה","teacher":""},{"subject":"פיזיקה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"FRC","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"FRC","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"FRC","teacher":""}]}]],"יב 3":[[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"אזרחות","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"ספרות","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"חינוך","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"אזרחות","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"ספרות","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"טכנולוגיה מוכללת","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"ביוטכנולוגיה","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"ביוטכנולוגיה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"ספרות","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"ספרות","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"ביואינפורמטיקה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"ביואינפורמטיקה","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"אזרחות","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"אנגלית","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"סייבר","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""},{"subject":"טכנולוגיה מוכללת","teacher":""},{"subject":"פיתוח אפליקציות","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"פיתוח אפליקציות","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"טכנולוגיה מוכללת","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"סייבר","teacher":""},{"subject":"טכנולוגיה מוכללת","teacher":""},{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"פיתוח אפליקציות","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"טכנולוגיה מוכללת","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"פיתוח אפליקציות","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"טכנולוגיה מוכללת","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"פיתוח אפליקציות","teacher":""}]}],[{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מעבדת כימיה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מעבדת כימיה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מעבדת כימיה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"FRC","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"FRC","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"FRC","teacher":""}]}]],"יב 4":[[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"אזרחות","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"פיזיקה","teacher":""},{"subject":"מעבדת כימיה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"פיזיקה","teacher":""},{"subject":"מעבדת כימיה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"פיזיקה","teacher":""},{"subject":"מעבדת כימיה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"חינוך גופני","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"ספרות","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"תנ\"ך","teacher":""}]}],[{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"פיזיקה","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"אזרחות","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"ספרות","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"טכנולוגיה מוכללת","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"ביוטכנולוגיה","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"ביוטכנולוגיה","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"אזרחות","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מתמטיקה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"ספרות","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"ספרות","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"ביואינפורמטיקה","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"ביואינפורמטיקה","teacher":""}]}],[{"n":"0","a":"07:45","b":"08:30","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"1","a":"08:30","b":"09:15","items":[{"subject":"תנ\"ך","teacher":""}]},{"n":"2","a":"09:15","b":"10:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"אנגלית","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"אנגלית","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"סייבר","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""},{"subject":"טכנולוגיה מוכללת","teacher":""},{"subject":"פיתוח אפליקציות","teacher":""}]},{"n":"6","a":"12:55","b":"13:40","items":[{"subject":"פיתוח אפליקציות","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"טכנולוגיה מוכללת","teacher":""},{"subject":"ביוטכנולוגיה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"סייבר","teacher":""},{"subject":"טכנולוגיה מוכללת","teacher":""},{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"פיתוח אפליקציות","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"טכנולוגיה מוכללת","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"פיתוח אפליקציות","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"טכנולוגיה מוכללת","teacher":""},{"subject":"סייבר","teacher":""},{"subject":"יישומים בביוטכנולוגיה","teacher":""},{"subject":"פיתוח אפליקציות","teacher":""}]}],[{"n":"3","a":"10:15","b":"11:00","items":[{"subject":"מעבדת כימיה","teacher":""}]},{"n":"4","a":"11:00","b":"11:45","items":[{"subject":"מעבדת כימיה","teacher":""}]},{"n":"5","a":"12:10","b":"12:55","items":[{"subject":"מעבדת כימיה","teacher":""}]},{"n":"7","a":"13:50","b":"14:35","items":[{"subject":"FRC","teacher":""}]},{"n":"8","a":"14:35","b":"15:20","items":[{"subject":"FRC","teacher":""}]},{"n":"9","a":"15:25","b":"16:10","items":[{"subject":"FRC","teacher":""}]}]]},ls.get("weekly",{}));
+let tmemC=null;
+function tmem(sub){/* teacher for a subject in my class, learned from published days */
+  const key=S.cls+"|"+Object.keys(S.docs).length;if(!tmemC||tmemC.k!==key){const m={};
+    for(const d of Object.values(S.docs))if(d)for(const l of d.lessons)for(const x of l.c[S.cls]||[])if(x.teacher&&x.subject){const b=base(x.subject);(m[b]=m[b]||{})[x.teacher]=(m[b][x.teacher]||0)+1}
+    tmemC={k:key,m}}
+  const c=tmemC.m[base(sub)];return c?Object.entries(c).sort((a,b)=>b[1]-a[1])[0][0]:""}
+const wcache={};
+function weeklyDoc(d){const dow=P(d).getDay();if(dow>4)return null;const W=WEEKLY[S.cls];if(!W||!W[dow]||!W[dow].length)return null;
+  const k=S.cls+d+Object.keys(S.docs).length;if(wcache[k])return wcache[k];
+  return wcache[k]={date:d,up:"weekly",weekly:true,lessons:W[dow].map(l=>({n:l.n,a:l.a,b:l.b,x:{},c:{[S.cls]:l.items.map(x=>({subject:x.subject,teacher:x.teacher||tmem(x.subject)}))}}))}}
+/* the published day if we have it; while it is loading undefined; otherwise the fixed weekly timetable */
+const docFor=d=>S.docs[d]?S.docs[d]:(S.docs[d]===undefined&&has(d)?undefined:weeklyDoc(d));
+/* "השיעורים הקבועים שלי": personal rules that beat the timetable, e.g. Sunday lessons 6-9 = רחפנים */
+let RULES=ls.get("rules",null);if(!RULES){RULES=S.cls==="ט 3"?[{cls:"ט 3",d:0,f:6,t:9,s:"רחפנים"}]:[];ls.set("rules",RULES)}
+function applyRules(L,doc){const dow=P(doc.date).getDay();const rs=RULES.filter(r=>r.cls===S.cls&&r.d===dow);if(!rs.length)return L;
+  /* one teacher for the whole rule (taken from any lesson in the range that has that subject) so 6-9 shows as one block */
+  const tch=new Map(rs.map(r=>{const hit=L.filter(l=>+l.n>=r.f&&+l.n<=r.t).flatMap(l=>l.items).find(x=>x.teacher&&(fix(x.subject).includes(r.s)||r.s.includes(base(x.subject))));return[r,hit?.teacher||tmem(r.s)||""]}));
+  return L.map(l=>{const r=rs.find(r=>+l.n>=r.f&&+l.n<=r.t);if(!r)return l;return{...l,items:[{subject:r.s,teacher:tch.get(r)}],rule:true}})}
+function lessons(doc){
+  if(!doc)return[];
+  const L=doc.lessons.map(l=>({...l,items:(l.c[S.cls]||[]).filter(x=>x.subject||x.teacher).map(x=>x.subject&&x.teacher&&!/\s/.test(x.subject.trim())&&x.teacher.split(/\s+/).includes(x.subject.trim())?{...x,subject:""}:x)}));
+  const R=doc.date?applyRules(L,doc):L;
+  const a=R.findIndex(l=>l.items.length);let b=R.length-1;while(b>=0&&!R[b].items.length)b--;
+  return a<0?[]:R.slice(a,b+1);
+}
+const has=d=>S.avail.some(x=>x.date===d);
+function focus(){
+  const t=today();
+  if(new Date().getDay()<=4){const doc=docFor(t);
+    if(!S.pref.auto)return t;
+    if(doc){const L=lessons(doc);if(L.length&&nowM()<mins(L.at(-1).b))return t}
+    else if(!(S.at&&!has(t)))return t}
+  let d=t;do{d=add(d,1)}while(P(d).getDay()>4);return d;
+}
+function tokens(t){const out=[];(t||"").replace(/['׳"״]/g,"").replace(/(^|[^א-ת])(יא|יב|[זחטי])\s?([1-9])(?!\d)/g,(m,p,g,n)=>out.push(g+" "+n));return out}
+function mine(e){const[g,n]=split(S.cls);const G=gl(g);if(!e.g.includes(G))return false;
+  const tk=tokens(e.t+" "+e.d).filter(x=>split(x)[0]===g);if(tk.length&&!e.c.length)return tk.includes(g+" "+n);
+  const ns=e.c.filter(c=>c.startsWith(G)&&/^\d+$/.test(c.slice(G.length))).map(c=>c.slice(G.length));return!ns.length||ns.includes(n)}
+const examsOn=d=>S.events.filter(e=>e.k==="exam"&&e.s<=d&&e.e>=d&&mine(e));
+/* exam ↔ subject: trust the calendar's subject code; fall back to the title only when there is none */
+const subjMatch=(e,s)=>{if(!s)return false;const m=EXS[e.sub];if(m)return m===s||s.startsWith(m+" ")||s.startsWith(m);return new RegExp(`(^|[\\sב])${s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}(\\s|$|[,.-])`).test(e.t)&&!/(פיננסי|גופני|תעבורתי)/.test(e.t.split(s)[1]||"")};
+const KINDS=[["בוחן","m"],["מבחן","m"],["מבדק","m"],["מתכונת","f"],["בגרות","f"],["בחינה","f"],["מטלה","f"],["עבודה","f"],["הגשה","f"],["סימולציה","f"]];
+const kindOf=t=>{t=t||"";let best=null;for(const[w,g]of KINDS){const i=t.indexOf(w);if(i>=0&&(!best||i<best.i))best={w,g,i}}return best||{w:"מבחן",g:"m"}};
+const nextLbl=t=>{const k=kindOf(t);return`ה${k.w} ${k.g==="f"?"הבאה":"הבא"}`};
+const isEx=(x,ex)=>{const s=base(x.subject);return ex.some(e=>subjMatch(e,s))};
+const sn=l=>l.items.length?l.items.map(x=>fix(x.subject)).join(" / "):"שעה חופשית";
+/* the school stores teachers surname first: "לניר כרמלי נורית" = נורית לניר כרמלי, "וולפמן יעקב דב" = יעקב דב וולפמן */
+const FIRST=new Set("אליזה אסתר גרגורי צביקה יעקב דב ערן משה שמשון אלכס פלורנס יוסי דוד שרה רחל לאה מרים אברהם יצחק שמואל חיים מיכל נועה תמר".split(" "));
+/* names exactly as the school's staff page writes them (handasaim.co.il/staff); refreshed by the app, this is the built-in copy */
+let STAFF=Object.assign({"אביטוב יורם":["יורם אביטוב",""],"אורין מתן":["מתן אורין",""],"אלבז אליזה":["אליזה אלבז","מחנכת ט׳ 1"],"אלוני כהן אילת":["אילת אלוני כהן","רכזת בגרויות"],"אלטרי גרגורי צביקה":["גרגורי צביקה אלטרי",""],"אליאס אפרת":["אפרת אליאס",""],"אפרתי אלי":["אלי אפרתי","מזכירות"],"בוחניק אושרי":["אושרי בוחניק","חינוך פיננסי"],"בוקסבאום מנחם":["מנחם בוקסבאום",""],"בראל מאיה":["מאיה בראל","רכזת אקדמיה בתיכון"],"ברנע לינה":["לינה ברנע",""],"גורוב מרינה":["מרינה גורוב","מחנכת י״א 3"],"גלעזר שרי":["שרי גלעזר",""],"דגן ריני":["ריני דגן","מנהלת חטיבת הביניים"],"דוד קורין":["דוד קורין",""],"דוד שלי":["שלי דוד","מתלי״ת – מעריכה ומקדמת תפקודי למידה"],"דוידוביץ מלי":["מלי דוידוביץ","רכזת התאמות, הערכה ומדידה"],"הכט עדן":["עדן הכט",""],"הררי לימור":["לימור הררי","יועצת התיכון"],"וולפמן קובי":["קובי וולפמן",""],"ופניש שרית":["שרית ופניש","מזכירות"],"זבלינסקי קוסטיה":["קוסטיה זבלינסקי",""],"זהר נגב טל":["טל זהר נגב","רכזת פדגוגית חט״ב"],"חיון ליאת":["ליאת חיון","מנהלת החשבונות"],"טואשי מוטי":["מוטי טואשי","אב הבית"],"ים דפנה":["דפנה ים",""],"יעקובוביץ נדב":["נדב יעקובוביץ","רכז פרויקטים · רכז רובוטיקה"],"כהן בן סימון דלית":["דלית כהן בן סימון",""],"כהן לימור":["לימור כהן",""],"כהן ערן משה":["ערן משה כהן",""],"כהן שלומי":["שלומי כהן","סגן מנהלת שש שנתי"],"לוי דורית":["דורית לוי","רכזת חברתית וטיולים"],"לוי מורן":["מורן לוי","מחנכת י׳ 2"],"ליאורה ניב":["ליאורה ניב",""],"לניר כרמלי נורית":["נורית לניר כרמלי","רכזת הכלה ושילוב"],"לנקרי לוי גלית":["גלית לוי לנקרי",""],"לפל לורטה":["לורטה לפל",""],"לרינמן שבלת":["שבלת לרינמן","מחנכת י״א 2"],"מוסקוביץ אנדראס":["אנדראס מוסקוביץ",""],"מוסקוביץ אנדריאס":["אנדריאס מוסקוביץ",""],"מן מיכל":["מיכל מן",""],"מנדל צח":["צח מנדל","מחנך ט׳ 3"],"משה שמואל":["שמואל משה","מחנך י״ב 2"],"סדן עמוס":["עמוס סדן","מחנך י״א 1"],"סלונימסקי אלכסנדרה":["אלכסנדרה סלונימסקי",""],"עמית אלמוג":["עמית אלמוג","מחנכת ז׳ 2"],"ענתבי אורנה":["אורנה ענתבי",""],"עשהאל קרן":["עשהאל קרן",""],"פלורנס שטרול זילברברג":["פלורנס שטרול זילברברג",""],"פרחי אדם":["אדם פרחי",""],"פרץ בר":["בר פרץ",""],"צפריר דלית":["דלית צפריר",""],"קויפמן אייל":["אייל קויפמן",""],"קלנר עדי":["עדי קלנר",""],"קרונפלד אילנה":["אילנה קרונפלד",""],"רובינשטיין מורן":["מורן רובינשטיין","רכזת תקשוב חט״ב"],"רוזן אורית":["אורית רוזן","מנהלת תיכון שש שנתי"],"רוזנבאום אילאיל":["אילאיל רוזנבאום","רכזת מועצת התלמידים"],"רוזנשטוק אלכס":["אלכס רוזנשטוק","מחנך י״ב 3"],"רומי גלית":["גלית רומי","מזכירות"],"רימון אלמוג":["אלמוג רימון",""],"שביט אופיר":["אופיר שביט",""],"שמש סמדי":["סמדי שמש","יועצת חטיבת הביניים"],"שני אליענה":["אליענה שני",""],"שפיר גיל":["גיל שפיר",""]},ls.get("staff",{}));
+const guess=t=>{const p=(t||"").trim().split(/\s+/).filter(Boolean);if(p.length<2)return p[0]||"";if(p.length===2)return`${p[1]} ${p[0]}`;
+  if(FIRST.has(p[0])&&!FIRST.has(p[1]))return p.join(" ");if(FIRST.has(p[1]))return[...p.slice(1),p[0]].join(" ");return[p.at(-1),...p.slice(0,-1)].join(" ")};
+const name=t=>{t=(t||"").trim();return STAFF[t]?.[0]||guess(t)};
+const role=t=>STAFF[(t||"").trim()]?.[1]||"";
+const homeroom=()=>{const want=cl(S.cls).replace(/(\D)(\d)/,"$1 $2");const e=Object.values(STAFF).find(v=>/^מחנ(ך|כת)\s/.test(v[1])&&v[1].replace(/^מחנ(ך|כת)\s*/,"").trim()===want);return e?e[0]:""};
+const tn=l=>S.pref.teachers?l.items.map(x=>name(x.teacher)).filter(Boolean).join(" / "):"";
+
+/* header */
+function header(){
+  $("date").textContent=new Intl.DateTimeFormat("he-IL",{weekday:"long",day:"numeric",month:"long"}).format(new Date());
+  $("hello").textContent=greet()+(S.name?", "+S.name:"");
+  $("clsBtn").textContent=cl(S.cls);
+  const f=focus(),L=lessons(docFor(f)),t=today();let s;
+  if(f===t&&L.length){const nm=nowM(),left=L.filter(l=>l.items.length&&mins(l.a)>nm).length;
+    s=nm<mins(L[0].a)?`מתחילים ב-${T(L[0].a)} עם <b>${esc(sn(L[0]))}</b>`:left?`עוד <b>${left}</b> ${left===1?"שיעור":"שיעורים"}, עד ${T(L.at(-1).b)}`:`שיעור אחרון, עד ${T(L.at(-1).b)}`}
+  else if(L.length)s=`${rel(f)} מתחילים ב-${T(L[0].a)} עם <b>${esc(sn(L[0]))}</b>`;
+  else s=S.busy&&!S.at?"טוען את המערכת…":`המערכת ל${rel(f)==="מחר"?"מחר":"יום "+DAYS[P(f).getDay()]} עוד לא פורסמה`;
+  $("sum").innerHTML=s;
+  const up=S.events.filter(e=>e.k==="exam"&&e.e>=f&&mine(e)).sort((a,b)=>a.s.localeCompare(b.s))[0];
+  const nw=$("news"),gone=ls.get("newsGone",[]),item=(S.news||[]).find(n=>!gone.includes(n));
+  if(item&&S.tab==="s"){nw.hidden=false;nw.innerHTML=`<i class="ph ph-megaphone-simple"></i><span>${esc(item)}</span><button id="newsX" aria-label="הסתרת ההודעה"><i class="ph ph-x"></i></button>`;
+    $("newsX").onclick=()=>{ls.set("newsGone",[...gone,item].slice(-30));header()}}else nw.hidden=true;
+  const xc=$("xchip");
+  if(up&&diff(up.s)<=3){const h=hoursOf(up);xc.hidden=false;xc.dataset.d=up.s<t?t:up.s;
+    xc.innerHTML=`<i class="ph-fill ph-pencil-simple-line"></i><span><b>${esc(up.t)}</b> ${up.s<=t?"היום":rel(up.s)}${h?`, ${h}`:""}</span>`}
+  else xc.hidden=true;
+  const soon=S.events.filter(e=>e.k==="exam"&&e.e>=t&&mine(e)&&diff(e.s)<=7).length;
+  $("badge").hidden=!soon;$("badge").textContent=soon;
+}
+
+/* week */
+function week(){const w=wk(S.sel);
+  $("days").innerHTML=[0,1,2,3,4].map(i=>{const d=add(w,i),ex=examsOn(d).length,nd=!has(d)&&!S.docs[d]&&!weeklyDoc(d);
+    return`<button class="day${nd?" nodata":""}" aria-pressed="${d===S.sel}" data-d="${d}" aria-label="יום ${DAYS[i]} ${dm(d)}${ex?", יש מבחן":""}"><b>${DAYS[i]}</b>${N(dm(d))}${ex?'<span class="mark"></span>':""}</button>`}).join("")}
+
+/* blocks: merge double lessons, and put exams in place of the lessons they cover */
+function blocks(L,ex){
+  const mark=L.map(()=>null),placed=new Set(),left=[...ex];
+  /* the school colors exam hours in its timetable file */
+  const groups=[];L.forEach((l,i)=>{if(!(l.x&&l.x[S.cls]))return;const g=groups.at(-1);if(g&&g.at(-1)===i-1)g.push(i);else groups.push([i])});
+  for(const g of groups){
+    let e=left.find(e=>g.some(i=>L[i].items.some(x=>isEx(x,[e]))))||left[0]||null;
+    if(e){left.splice(left.indexOf(e),1);placed.add(e)}
+    else{const ce=g.map(i=>L[i].items.map(cellExam).find(Boolean)).find(Boolean);if(ce)e=ce;else{const t=newsExam(g.map(i=>L[i]));if(t)e=t}}
+    if(e)g.forEach(i=>mark[i]=e);
+  }
+  L.forEach((l,i)=>{if(mark[i])return;const ce=l.items.map(cellExam).find(Boolean);if(!ce)return;
+    const pm=i>0&&mark[i-1]&&mark[i-1].cell&&mark[i-1].t===ce.t?mark[i-1]:ce;mark[i]=pm});
+  for(const e of left){
+    let idx=[];
+    if(e.tm){const s0=mins(e.tm),s1=e.te?mins(e.te):s0+90;L.forEach((l,i)=>{if(mins(l.a)<s1&&mins(l.b)>s0)idx.push(i)})}
+    if(!idx.length){const f=L.findIndex(l=>l.items.some(x=>isEx(x,[e])));if(f>=0)idx=[f,f+1].filter(i=>i<L.length&&!mark[i])}
+    idx.forEach(i=>{if(!mark[i])mark[i]=e});if(idx.length)placed.add(e);
+  }
+  const sig=l=>l.items.map(x=>fix(x.subject)+"|"+x.teacher).join(",");
+  const B=[];
+  L.forEach((l,i)=>{const prev=B.at(-1),pl=prev&&prev.ls.at(-1);
+    const joinable=prev&&(mins(l.a)-mins(pl.b)<5||(((l.rule&&pl.rule)||(mark[i]&&prev.exam===mark[i]))&&mins(l.a)-mins(pl.b)<=15))&&((mark[i]&&prev.exam===mark[i])||(!mark[i]&&!prev.exam&&l.items.length&&sig(l)===sig(pl)));
+    if(joinable)prev.ls.push(l);else B.push({ls:[l],exam:mark[i]})});
+  B.forEach(x=>{x.a=x.ls[0].a;x.b=x.ls.at(-1).b;x.n=x.ls.length>1?`${x.ls[0].n}-${x.ls.at(-1).n}`:x.ls[0].n;x.items=x.ls[0].items});
+  return{B,loose:ex.filter(e=>!placed.has(e))};
+}
+function newsExam(ls){const G=gl(split(S.cls)[0]);
+  for(const n of S.news||[]){if(!/מבחן|בוחן|מטלה|בחינה/.test(n))continue;
+    let sb="";if(ls.some(l=>l.items.some(x=>{const b=base(x.subject);if(b&&n.includes(b)){sb=b;return true}return false}))&&(!/(^|[^א-ת])(יא|יב|[זחטי])['׳"״]/.test(n)||[G,G.replace("׳","'"),G.replace("״",'"'),"שכבת "+split(S.cls)[0]].some(f=>n.includes(f))))return{t:"מבחן ב"+sb,news:n}}
+  return""}
+function hoursOf(e){const doc=docFor(e.s);if(!doc)return"";const x=blocks(lessons(doc),examsOn(e.s)).B.find(x=>x.exam===e);
+  return x?`${x.ls.length>1?"שיעורים":"שיעור"} ${x.n}, ${fmtT(x.a)}-${fmtT(x.b)}${doc.weekly?" (משוער)":""}`:""}
+const bName=x=>x.exam&&!x.exam.marked?x.exam.t:sn(x);
+const bLbl=x=>x.ls.length>1?`שיעורים ${x.n}`:`שיעור ${x.n}`;
+
+/* now */
+function ring(fr,big,small,c=""){const C=2*Math.PI*44,o=C*(1-Math.max(0,Math.min(1,fr)));
+  return`<div class="ring ${c}"><svg viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="44" fill="none" stroke-width="7"/><circle class="val" cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${o}"/></svg><div class="ring-c">${N(big)}<small>${small}</small></div></div>`}
+function rail(B,isT){const nm=nowM();
+  return`<div class="rail">${B.flatMap(x=>x.ls.map(l=>({l,ex:!!x.exam&&!x.exam.marked}))).map(({l,ex})=>{const a=mins(l.a),b=mins(l.b),p=!isT?0:nm>=b?100:nm>a?(nm-a)/(b-a)*100:0;
+    return`<div class="seg${!l.items.length?" free":""}${p>=100?" done":""}${ex?" ex":""}" style="--w:${b-a}">${p>0&&p<100?`<span class="fill" style="--p:${p}%"></span>`:""}</div>`}).join("")}</div>
+`}
+const note=ex=>ex.length?`<div class="note"><i class="ph-fill ph-pencil-simple-line"></i><span>${ex.map(e=>esc(e.t)).join(", ")}, שעתיים. השעות עוד לא סומנו במערכת</span></div>`:"";
+function now(){
+  const box=$("nowBox"),d=S.sel,L=lessons(docFor(d)),isT=d===today(),ex=examsOn(d);
+  if(!L.length){box.innerHTML=ex.length?`<div class="now">${note(ex)}</div>`:"";return}
+  const{B,loose}=blocks(L,ex),nm=nowM(),cnt=L.filter(l=>l.items.length).length;
+  const cur=isT&&B.find(x=>nm>=mins(x.a)&&nm<mins(x.b)),nx=isT&&B.find(x=>mins(x.a)>nm);let h;
+  if(cur){const a=mins(cur.a),b=mins(cur.b),e=!!cur.exam&&!cur.exam.marked;
+    h=`<div class="now-top">${ring((nm-a)/(b-a),Math.ceil(b-nm),"דק׳",e?"exam":"")}<div class="nt"><div class="lbl${e?" exam":""}"><span class="dot"></span>עכשיו, ${bLbl(cur)}</div><div class="subj${e?" glow":""}">${esc(bName(cur))}</div><div class="meta">${e?`${bLbl(cur)}, במקום ${esc(sn(cur))}`:esc(tn(cur))}</div></div></div>${rail(B,isT)}`
+      +(nx?`<div class="next"><i class="ph ph-arrow-bend-down-left"></i>אחר כך <b${nx.exam&&!nx.exam.marked?' class="glow"':""}>${esc(bName(nx))}</b>${T(nx.a)}</div>`:`<div class="next"><i class="ph ph-flag-checkered"></i>השיעור האחרון להיום${T(cur.b)}</div>`)}
+  else if(isT&&nx){const before=nm<mins(B[0].a),left=Math.ceil(mins(nx.a)-nm);
+    const ps=before?mins(nx.a)-60:mins(B.filter(x=>mins(x.b)<=nm).at(-1).b),fr=before?1-Math.min(1,left/60):(nm-ps)/(mins(nx.a)-ps);
+    h=`<div class="now-top">${ring(fr,left>99?fmtT(nx.a):left,left>99?"פתיחה":"דק׳","calm")}<div class="nt"><div class="lbl calm"><span class="dot"></span>${before?"עוד מעט מתחילים":"הפסקה"}</div><div class="subj${nx.exam&&!nx.exam.marked?" glow":""}">${esc(bName(nx))}</div><div class="meta">${esc(tn(nx))}${tn(nx)?", ":""}${bLbl(nx)}</div></div></div>${rail(B,isT)}`}
+  else{const fl=B.find(x=>x.items.length)||B[0];
+    h=`<div class="now-top">${ring(0,cnt,"שיעורים")}<div class="nt"><div class="lbl">${rel(d)}, ${dm(d)}</div><div class="subj">מתחילים ב-${T(B[0].a)}</div><div class="meta">${esc(bName(fl))}, מסיימים ב-${T(B.at(-1).b)}</div></div></div>${rail(B,isT)}`}
+  box.innerHTML=`<div class="now">${h}${note(loose)}</div>`;
+}
+
+/* timeline */
+function list(anim){
+  const d=S.sel,doc=docFor(d),el=$("list");$("lh").hidden=true;el.className="tl";
+  $("vt").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===S.pref.view));
+  if(S.pref.view==="week"){weekGrid(anim);return}
+  if(doc===undefined&&(S.busy||has(d))){el.innerHTML='<div class="skel"></div>'.repeat(5);return}
+  if(!doc){el.innerHTML=`<div class="empty"><i class="ph ph-calendar-blank"></i><b>המערכת עוד לא פורסמה</b>בית הספר מפרסם אותה יום לפני, והיא תופיע כאן לבד.</div>`;return}
+  const L=lessons(doc);
+  if(!L.length){el.innerHTML=`<div class="empty"><i class="ph ph-calendar-blank"></i><b>אין שיעורים ל${cl(S.cls)}</b>ביום הזה אין לכיתה שיעורים.</div>`;return}
+  const isT=d===today(),nm=nowM(),ex=examsOn(d),{B,loose}=blocks(L,ex);
+  $("lh").hidden=false;$("lt").textContent=`יום ${DAYS[P(d).getDay()]}`;$("ls").innerHTML=`${L.filter(l=>l.items.length).length} שיעורים, ${T(B[0].a)}-${T(B.at(-1).b)}`+(doc.weekly?'<span class="fx" title="המערכת היומית תחליף אותה כשתתפרסם">לפי המערכת הקבועה</span>':"");
+  let h="",i=0,hidden=0;
+  for(const e of loose)h+=`<div class="row exam" style="--i:${i++}"><div class="t"><span class="num">?</span></div><div class="rail-v"><i></i></div><div class="c xb"><div class="xt"><span class="tag"><i class="ph-fill ph-pencil-simple-line"></i>${kindOf(e.t).w}</span><b>${esc(e.t)}</b></div><div class="m">שעתיים${e.d?`, ${esc(e.d)}`:""}. השעות עוד לא סומנו במערכת</div></div></div>`;
+  let shown=B;
+  if(isT&&S.pref.hidePast){shown=B.filter(x=>mins(x.b)>nm);hidden=B.length-shown.length;if(!shown.length)shown=B.slice(-1)}
+  if(hidden)h+=`<button class="hid" id="showPast" style="--i:${i++}">${hidden===1?"שיעור אחד שנגמר מוסתר":`${hidden} שיעורים שנגמרו מוסתרים`}, הצגה</button>`;
+  shown.forEach((x,k)=>{
+    const prevB=B[B.indexOf(x)-1];const g=prevB&&k>0?mins(x.a)-mins(prevB.b):0;
+    const inBrk=isT&&prevB&&nm>=mins(prevB.b)&&nm<mins(x.a);
+    if(g>=5&&(S.pref.breaks||inBrk))h+=`<div class="row gap${inBrk?" brknow":""}" style="--i:${i++}"><div></div><div class="rail-v"></div><div class="c">${g>=20?"הפסקה גדולה":"הפסקה"}, ${N(g)} דק׳${inBrk?`<b>נגמרת בעוד ${N(Math.ceil(mins(x.a)-nm))} דק׳</b>`:""}</div></div>`;
+    const a=mins(x.a),b=mins(x.b),st=isT?(nm>=b?" past":nm>=a?" cur":""):"",free=!x.items.length;
+    const subj=[...new Set(x.ls.flatMap(l=>l.items.map(y=>fix(y.subject))))].join(" / ");
+    const tch=S.pref.teachers?[...new Set(x.ls.flatMap(l=>l.items.map(y=>name(y.teacher))))].filter(Boolean).join(" / "):"";
+    let body,cls="";
+    if(x.exam&&!x.exam.marked){cls=" exam";
+      body=`<div class="xt"><span class="tag"><i class="ph-fill ph-pencil-simple-line"></i>${kindOf(x.exam.t).w}</span><b>${esc(x.exam.t)}</b></div><div class="m">${bLbl(x)}${x.exam.room?`, חדר ${esc(x.exam.room)}`:""}${subj&&!x.exam.cell&&!x.exam.t.includes(base(subj))?`, במקום ${esc(subj)}`:""}</div>${x.exam.news?`<div class="m2">מתוך הודעה באתר בית הספר: ${esc(x.exam.news)}</div>`:""}`}
+    else if(x.exam){cls=" marked";
+      body=`<div class="xt"><span class="tag soft">מסומן</span><b>${esc(subj)}</b></div><div class="m">${bLbl(x)}${tch?`, ${esc(tch)}`:""}</div><div class="m2">השעות מסומנות בכחול במערכת של בית הספר, בדרך כלל זה מבחן</div>`}
+    else body=free?`<div class="s">שעה חופשית</div><div class="m">${bLbl(x)}</div>`:x.items.map((y,j)=>`<div class="g"><div class="s">${esc(fix(y.subject))}${y.is_sub?'<span class="tag sub">החלפה</span>':""}</div><div class="m">${j===0?bLbl(x):""}${j===0&&S.pref.teachers&&y.teacher?", ":""}${S.pref.teachers?esc(name(y.teacher)):""}${y.is_sub&&y.orig_subject?`, במקום ${esc(fix(y.orig_subject))}`:""}</div></div>`).join("");
+    h+=`<div class="row${st}${free?" free":""}${cls}" style="--i:${i++}"${free?"":` data-k="${esc(x.exam&&!x.exam.cell?skey(x):base(subj))}"`}><div class="t">${T(x.a)}${T(x.b)}</div><div class="rail-v"><i></i></div><div class="c${x.exam?" xb":""}">${body}${st===" cur"?`<span class="left">נשארו ${N(Math.ceil(b-nm))} דק׳</span><div class="bar"><span style="--p:${(nm-a)/(b-a)*100}%"></span></div>`:""}</div></div>`;
+  });
+  el.innerHTML=h;if(anim)el.classList.add("enter");
+  $("showPast")?.addEventListener("click",()=>{S.pref.hidePast=false;ls.set("pref",S.pref);render(true)});
+}
+
+/* exams */
+function exams(){
+  const t=today(),w=wk(t);
+  const L=S.events.filter(e=>e.e>=t&&(S.exF==="all"?(e.k==="school"||e.k==="holiday"||!e.g.length||mine(e)):(e.k==="exam"&&mine(e)))).sort((a,b)=>a.s.localeCompare(b.s)||a.t.localeCompare(b.t));
+  if(!L.length){$("exList").innerHTML=`<div class="empty" style="margin-top:16px"><i class="ph ph-smiley"></i><b>${S.exF==="exam"?"אין מבחנים באופק":"אין אירועים קרובים"}</b>ל${cl(S.cls)} כרגע. כשיתווסף משהו הוא יופיע כאן.</div>`;return}
+  let h="";const f=L.find(e=>e.k==="exam");
+  if(f&&S.exF==="exam"){const n=Math.max(0,diff(f.s));
+    h+=`<div class="nx"><div><div class="k">${nextLbl(f.t)}</div><h3>${esc(f.t)}</h3><div class="w">יום ${DAYS[P(f.s).getDay()]}, ${N(dm(f.s))}${hoursOf(f)?`, ${esc(hoursOf(f))}`:", שעתיים"}</div></div>${n<2?`<div class="cd word">${n?"מחר":"היום"}</div>`:`<div class="cd">${N(n)}<small>ימים</small></div>`}</div>`}
+  let grp="",open=false;
+  for(const e of L){
+    if(f&&S.exF==="exam"&&e===f)continue;
+    const g=e.s<add(w,7)?"השבוע":e.s<add(w,14)?"שבוע הבא":new Intl.DateTimeFormat("he-IL",{month:"long"}).format(P(e.s));
+    if(g!==grp){if(open)h+="</div>";h+=`<div class="gh">${g}</div><div class="el">`;grp=g;open=true}
+    const n=diff(e.s),it=e.s<=t?"היום":n===1?"מחר":`בעוד ${n} ימים`;
+    const sub=[`יום ${DAYS[P(e.s).getDay()]}${e.e!==e.s?` עד ${dm(e.e)}`:""}`,e.k==="exam"?hoursOf(e):(e.tm&&(e.te?`${e.tm}-${e.te}`:e.tm)),e.d,e.l].filter(Boolean).map(esc).join(", ");
+    h+=`<div class="er k-${e.k}${n<=3&&e.k==="exam"?" soon":""}"><div class="d">${N(P(e.s).getDate())}<small>${new Intl.DateTimeFormat("he-IL",{month:"short"}).format(P(e.s))}</small></div><div class="x"><b>${esc(e.t)}</b><span>${sub}</span></div><div class="in">${it}</div></div>`}
+  if(open)h+="</div>";if(!grp&&f)h+=`<p class="gh" style="text-align:center">אין עוד מבחנים אחרי זה</p>`;$("exList").innerHTML=h;
+}
+
+/* shell */
+function foot(){const a=S.at?Math.round((Date.now()-S.at)/60000):null;
+  $("foot").innerHTML=S.busy?"<span>מתעדכן…</span>":`${S.err?`<span class="err">${esc(S.err)}</span>`:`<span>${a==null?"":a<1?"עודכן עכשיו":`עודכן לפני ${a} דק׳`}</span>`}<button id="rf"><i class="ph ph-arrow-clockwise"></i>רענון</button>`;
+  $("rf")?.addEventListener("click",refresh)}
+function render(anim){
+  if(!S.manual||!S.sel)S.sel=focus();
+  header();const s=S.tab==="s";
+  $("vS").hidden=!s;$("vE").hidden=s;$("weekBar").hidden=!s;
+  $("tS").setAttribute("aria-selected",s);$("tE").setAttribute("aria-selected",!s);
+  $("iS").className=(s?"ph-fill":"ph")+" ph-calendar-blank";$("iE").className=(s?"ph":"ph-fill")+" ph-pencil-simple-line";
+  $("fEx").setAttribute("aria-pressed",S.exF==="exam");$("fAll").setAttribute("aria-pressed",S.exF==="all");
+  if(s){week();now();list(anim)}else exams();foot();pushWidget();
+}
+async function pick(d){if(d===S.sel)return;S.sel=d;S.manual=d!==focus();render(true);
+  if(S.docs[d]===undefined&&has(d)){try{await loadDoc(d);ls.set("docs",S.docs)}catch{}render(false)}}
+
+/* sheet: every change applies instantly */
+function openSheet(first){try{updInfo()}catch{}$("nameIn").value=S.name;
+  $("shT").textContent=first?"נעים להכיר":"הגדרות";$("shS").textContent=first?"שני פרטים קטנים ומתחילים. הכל נשמר רק בטלפון שלך.":"הכל נשמר רק בטלפון שלך.";
+  $("save").textContent=first?"מתחילים":"סיום";draw();$("sw").classList.add("open")}
+function draw(){const by={};for(const c of S.classes){const[g]=split(c);(by[g]=by[g]||[]).push(c)}
+  $("grades").innerHTML=Object.entries(by).map(([g,cs])=>`<div class="gr"><span>${gl(g)}</span><div class="r">${cs.map(c=>`<button data-c="${esc(c)}" aria-pressed="${c===S.cls}">${cl(c)}</button>`).join("")}</div></div>`).join("");
+  $("themes").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.t===S.theme));
+  $("sizes").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.s===S.pref.size));
+  $("sws").querySelectorAll(".swr").forEach(b=>b.setAttribute("aria-checked",!!S.pref[b.dataset.k]));
+  $("ecs").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.e===S.pref.ec));
+  drawRules();
+  const hr=homeroom();$("hrT").hidden=!hr;$("hrT").textContent=hr?`המחנך/ת של ${cl(S.cls)}: ${hr}`:""}
+function drawRules(){const mine=RULES.filter(r=>r.cls===S.cls);
+  $("rules").innerHTML=mine.length?mine.map(r=>`<div class="rule"><span>יום ${DAYS[r.d]}, ${r.f===r.t?`שיעור ${N(r.f)}`:`שיעורים ${N(r.f)}-${N(r.t)}`}: <b>${esc(r.s)}</b></span><button data-i="${RULES.indexOf(r)}" aria-label="מחיקה"><i class="ph ph-x"></i></button></div>`).join(""):`<p class="sjn">אין עדיין שיעורים קבועים ל${cl(S.cls)}</p>`;
+  const opts=Array.from({length:10},(_,i)=>`<option value="${i}">${i}</option>`).join("");if(!$("rFrom").options.length){$("rFrom").innerHTML=opts;$("rTo").innerHTML=opts;$("rFrom").value="6";$("rTo").value="9"}}
+$("rules").onclick=e=>{const b=e.target.closest("[data-i]");if(b){RULES.splice(+b.dataset.i,1);ls.set("rules",RULES);render(false);drawRules()}};
+$("rAdd").onclick=()=>{const sub=$("rSub").value.trim();if(!sub){$("rSub").focus();return}let f=+$("rFrom").value,t=+$("rTo").value;if(t<f)[f,t]=[t,f];
+  RULES.push({cls:S.cls,d:+$("rDay").value,f,t,s:sub});ls.set("rules",RULES);$("rSub").value="";render(false);drawRules()};
+const savePref=()=>{ls.set("pref",S.pref);applyPref();S.manual=false;render(false);draw()};
+const close=()=>{$("sw").classList.remove("open")};
+$("nameIn").oninput=()=>{S.name=$("nameIn").value.trim();ls.set("name",S.name);header()};
+$("grades").onclick=e=>{const b=e.target.closest("[data-c]");if(b){S.cls=b.dataset.c;ls.set("cls",S.cls);S.manual=false;render(true);draw()}};
+$("themes").onclick=e=>{const b=e.target.closest("[data-t]");if(b){S.theme=b.dataset.t;ls.set("theme",S.theme);applyTheme();draw()}};
+$("sizes").onclick=e=>{const b=e.target.closest("[data-s]");if(b){S.pref.size=b.dataset.s;savePref()}};
+$("sws").onclick=e=>{const b=e.target.closest(".swr");if(b){S.pref[b.dataset.k]=!S.pref[b.dataset.k];if(b.dataset.k==="remind"&&S.pref.remind)try{Native.askNotify()}catch{};savePref()}};
+$("rfNow").onclick=async()=>{$("rfNow").lastChild.textContent="מתעדכן…";await refresh();$("rfNow").lastChild.textContent="עודכן עכשיו"};
+if(window.Native&&Native.checkNow){$("chkUpd").hidden=false;$("chkUpd").onclick=()=>{$("chkUpd").lastChild.textContent="בודק…";Native.checkNow()}}
+$("save").onclick=()=>{ls.set("onboarded",true);close()};
+$("xchip").onclick=()=>{const d=$("xchip").dataset.d;if(has(d)||docFor(d)){S.tab="s";pick(d);render(true)}else{S.tab="e";render()}scrollTo(0,0)};
+$("scrim").onclick=close;
+$("clsBtn").onclick=()=>openSheet(false);$("gearBtn").onclick=()=>openSheet(false);
+$("days").onclick=e=>{const b=e.target.closest("[data-d]");if(b)pick(b.dataset.d)};
+$("tS").onclick=()=>{S.tab="s";render(true);scrollTo(0,0)};$("tE").onclick=()=>{S.tab="e";render();scrollTo(0,0)};
+$("fEx").onclick=()=>{S.exF="exam";render()};$("fAll").onclick=()=>{S.exF="all";render()};
+let sx=0,sy=0;
+$("vS").addEventListener("touchstart",e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
+$("vS").addEventListener("touchend",e=>{const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+  if(anySheet()||Math.abs(dx)<60||Math.abs(dx)<Math.abs(dy)*1.5)return;let d=S.sel;const st=dx>0?1:-1;do{d=add(d,st)}while(P(d).getDay()>4);pick(d)},{passive:true});
+
+/* pull to refresh */
+let py=null,pd=0;const ptr=$("ptr");
+const anySheet=()=>$("sw").classList.contains("open")||$("sj").classList.contains("open");
+addEventListener("touchstart",e=>{if(scrollY<=0&&!anySheet())py=e.touches[0].clientY;else py=null},{passive:true});
+addEventListener("touchmove",e=>{if(py==null)return;pd=Math.max(0,e.touches[0].clientY-py);if(pd>10){ptr.classList.add("drag");ptr.style.setProperty("--y",Math.min(pd*.5,60)-60+"px");ptr.textContent=pd>90?"שחררו לרענון":"משכו לרענון"}},{passive:true});
+addEventListener("touchend",async()=>{if(py==null)return;ptr.classList.remove("drag");const go=pd>90;py=null;pd=0;
+  if(go){ptr.textContent="מתעדכן…";ptr.style.setProperty("--y","0px");await refresh();ptr.textContent="עודכן";setTimeout(()=>ptr.style.setProperty("--y","-60px"),700)}else ptr.style.setProperty("--y","-60px")});
+
+/* app updates (Android) */
+const NATIVE=window.Native||null;
+function appInfo(){try{return NATIVE?JSON.parse(NATIVE.info()):null}catch{return null}}
+window.onStaff=list=>{if(!Array.isArray(list)||list.length<20)return;const norm=t=>String(t).replace(/[׳'"״]/g,"");
+  const keys=new Set(Object.keys(STAFF));for(const d of Object.values(S.docs))if(d)for(const l of d.lessons)for(const a of Object.values(l.c))for(const x of a)if(x.teacher)keys.add(x.teacher.trim());
+  const out={};for(const k of keys){const kt=k.split(/\s+/),kn=kt.map(norm);
+    const full=list.filter(p=>kn.every(w=>norm(p.n).split(/\s+/).includes(w)));
+    if(full.length){const p=full.sort((a,b)=>a.n.length-b.n.length)[0],st=norm(p.n).split(/\s+/);out[k]=[[...kt].sort((a,b)=>st.indexOf(norm(a))-st.indexOf(norm(b))).join(" "),p.r||""];continue}
+    const sur=list.filter(p=>norm(p.n).split(/\s+/).includes(kn[0]));if(sur.length===1)out[k]=[[...kt.slice(1),kt[0]].join(" "),sur[0].r||""]}
+  if(Object.keys(out).length>30){STAFF=Object.assign(STAFF,out);ls.set("staff",out);ls.set("staffAt",Date.now());render(false)}};
+window.onWeeklyHtml=html=>{try{const doc=new DOMParser().parseFromString(html,"text/html"),out={};
+  for(const tb of doc.querySelectorAll("table")){const cap=tb.querySelector("caption")?.textContent||"";const m=cap.match(/כיתה\s*(\D+?)\s*(\d+)/);if(!m)continue;
+    const days=[[],[],[],[],[]];for(const tr of tb.querySelectorAll("tbody tr")){const th=tr.querySelector("th");if(!th)continue;const n=(th.firstChild?.textContent||"").trim();const tm=(th.textContent.match(/\d\d:\d\d/g)||[]);
+      [...tr.querySelectorAll("td")].slice(0,5).forEach((td,i)=>{const items=[...td.querySelectorAll("div")].map(dv=>{const b=dv.querySelector("b");if(!b)return null;const t=dv.textContent.replace(b.textContent,"").trim();return{subject:b.textContent.trim(),teacher:t}}).filter(Boolean);
+        if(items.length)days[i].push({n,a:tm[0]||"",b:tm[1]||"",items})})}
+    out[`${m[1]} ${m[2]}`]=days}
+  if(Object.keys(out).length>=10){WEEKLY=Object.assign(WEEKLY,out);ls.set("weekly",out);ls.set("weeklyAt",Date.now());render(false)}}catch{}};
+window.onNews=arr=>{if(!Array.isArray(arr))return;S.news=arr.filter(x=>typeof x==="string"&&x.trim()).map(x=>x.trim()).slice(0,8);ls.set("news",S.news);render(false)};
+window.onAppUpdate=(kind,url)=>{const u=$("upd");
+  const msg={none:"יש לך את הגרסה האחרונה",missing:"לא נמצאו קבצי עדכון ב-GitHub",offline:"אין חיבור לשרת העדכונים",error:"העדכון נכשל, ננסה שוב"}[kind];
+  if(msg){const c=$("chkUpd");if(c)c.lastChild.textContent=msg;updInfo();return}
+  u.innerHTML=kind==="apk"?`<span>יש גרסה חדשה של האפליקציה</span><a href="${esc(url)}" target="_blank" rel="noopener">הורדה</a>`:`<span>עדכון חדש מוכן</span><button id="updGo">רענון</button>`;
+  u.hidden=false;$("updGo")?.addEventListener("click",()=>location.reload())};
+(()=>{const i=appInfo();if(i){if(i.pendingWeb)onAppUpdate("web");else if(i.apkUrl)onAppUpdate("apk",i.apkUrl);
+  $("about").textContent+=` גרסה ${i.versionName}.${i.web}`}updInfo()})();
+function updInfo(){const i=appInfo();if(!i||!$("updInfo"))return;const a=i.lastCheck?Math.round((Date.now()-i.lastCheck)/60000):null;
+  const st={ok:"השרת זמין",missing:"קבצי העדכון לא נמצאו ב-GitHub",offline:"לא הייתה גישה לאינטרנט",error:"שגיאה בעדכון"}[i.updState]||"עוד לא נבדק";
+  $("updInfo").textContent=`גרסה ${i.versionName}.${i.web} · בדיקת עדכונים אחרונה: ${a==null?"עוד לא":a<1?"עכשיו":a<60?`לפני ${a} דק׳`:`לפני ${Math.round(a/60)} שע׳`} · ${st}`}
+
+/* ---------- subject colours (quiet, one per subject) ---------- */
+const SUBC=["#8EA6FF","#74D3AE","#F2B880","#E59AC9","#7FD1E0","#C3B1FF","#E8D27A","#9FD38B","#F29C9C","#A9B8C9"];
+const scol=k=>{let h=0;for(const c of k||"")h=(h*31+c.charCodeAt(0))>>>0;return SUBC[h%SUBC.length]};
+const skey=x=>{if(!x.exam)return base(x.items[0]?.subject||"");const e=x.exam;const m=EXS[e.sub];if(m)return m;
+  const ks=[...new Set(x.ls.flatMap(l=>l.items.map(y=>base(y.subject))))];return ks.find(k=>k&&e.t.includes(k))||ks[0]||""};
+const short=t=>{t=fix(t);const m={"מדעי המחשב":"מדמ״ח","לשון והבעה עברית":"לשון","חשמל ואלקטרוניקה":"חשמל","טכנולוגיה מוכללת":"טכנולוגיה","חינוך גופני":"חנ״ג","חינוך תעבורתי":"תעבורה","חינוך פיננסי":"פיננסי","מערכות ספרתיות":"ספרתיות","יישומים בביוטכנולוגיה":"ביוטק","ביוטכנולוגיה":"ביוטק","מתמטיקה טכניונית":"מתמטיקה","מעבדת ביולוגיה":"מעבדה","מעבדת כימיה":"מעבדה","פיתוח אפליקציות":"אפליקציות"};return m[t]||t.split(" ")[0]};
+const examMatches=(e,k)=>subjMatch(e,k);
+
+/* ---------- week view ---------- */
+function weekGrid(anim){
+  const el=$("list"),w=wk(S.sel),days=[0,1,2,3,4].map(i=>add(w,i)),t=today(),nm=nowM();
+  const wk2=days.map(d=>!!docFor(d)?.weekly);const per=days.map(d=>{const doc=docFor(d);if(!doc)return null;const L=lessons(doc);return L.length?blocks(L,examsOn(d)).B:[]});
+  const nums=[...new Set(per.flatMap(B=>(B||[]).flatMap(x=>x.ls.map(l=>+l.n))))].sort((a,b)=>a-b);
+  $("lh").hidden=false;$("lt").textContent="השבוע";$("ls").textContent=`${dm(days[0])}-${dm(days[4])}`;
+  if(!nums.length){el.innerHTML=`<div class="empty"><i class="ph ph-calendar-blank"></i><b>אין עדיין מערכת לשבוע הזה</b>המערכת מתפרסמת יום-יום, והימים יתמלאו כאן.</div>`;return}
+  let h=`<div class="wg" style="--rows:${nums.length}"><div class="wh"></div>${days.map((d,i)=>`<button class="wh${d===t?" today":""}${d===S.sel?" sel":""}" data-d="${d}"><b>${DL[i]}׳</b>${N(P(d).getDate())}${wk2[i]?'<small class="fxs">קבועה</small>':""}</button>`).join("")}`;
+  nums.forEach((n,r)=>{h+=`<div class="wn" style="grid-row:${r+2}">${N(n)}</div>`});
+  per.forEach((B,c)=>{const d=days[c];
+    if(B===null){h+=`<div class="wx" style="grid-column:${c+2};grid-row:2/span ${nums.length}">${has(d)?"טוען…":"עוד לא<br>פורסם"}</div>`;return}
+    for(const x of B){if(!x.items.length&&!x.exam)continue;const r0=nums.indexOf(+x.ls[0].n),r1=nums.indexOf(+x.ls.at(-1).n);
+      const cur=d===t&&nm>=mins(x.a)&&nm<mins(x.b),past=d===t&&nm>=mins(x.b),k=skey(x);
+      const ex=x.exam&&!x.exam.marked;
+      h+=`<button class="wc${ex?" ex":""}${cur?" cur":""}${past?" past":""}${wk2[c]?" exp":""}" style="grid-column:${c+2};grid-row:${r0+2}/${r1+3};--c:${scol(k)}" data-k="${esc(k)}" data-d="${d}">${ex?'<i class="ph-fill ph-pencil-simple-line"></i>':""}<span>${esc(short(ex?k||x.exam.t:sn(x)))}</span>${cur?`<small class="wl">${N(Math.ceil(mins(x.b)-nm))}׳</small>`:""}</button>`}});
+  h+="</div>";el.innerHTML=h;if(anim)el.classList.add("enter");
+}
+
+/* ---------- subject page ---------- */
+function openSubj(k,live){
+  if(!k)return;S.sjKey=k;const sc=$("sj").querySelector(".sheet"),top=sc.scrollTop;const t=today(),nm=nowM(),w=wk(S.sel);
+  const occ=[];for(let i=0;i<5;i++){const d=add(w,i),doc=docFor(d);if(!doc)continue;
+    for(const x of blocks(lessons(doc),examsOn(d)).B){const ks=x.ls.flatMap(l=>l.items.map(y=>base(y.subject)));if(ks.includes(k)||skey(x)===k)occ.push({d,x})}}
+  const traw=[...new Set(occ.flatMap(o=>o.x.ls.flatMap(l=>l.items.filter(y=>base(y.subject)===k).map(y=>y.teacher))))].filter(Boolean);
+  const teachers=traw.map(t=>name(t)+(role(t)&&role(t).length<=22?` (${role(t)})`:""));if(k==="חינוך"&&!teachers.length&&homeroom())teachers.push(homeroom());
+  const hours=occ.reduce((a,o)=>a+o.x.ls.length,0);
+  const nxt=occ.find(o=>o.d>t||(o.d===t&&mins(o.x.a)>nm));
+  const exs=S.events.filter(e=>e.k==="exam"&&e.e>=t&&mine(e)&&examMatches(e,k)).sort((a,b)=>a.s.localeCompare(b.s));
+  const c=scol(k),cur=occ.find(o=>o.d===t&&nm>=mins(o.x.a)&&nm<mins(o.x.b)),xk=exs.length?kindOf(exs[0].t):null;
+  let h=`<div class="grab"></div><div class="sjh"><span class="sjd" style="--c:${c}"></span><div><h2>${esc(k)}</h2><p class="sub">${teachers.length?esc(teachers.join(", ")):"&nbsp;"}</p></div></div>
+  <div class="sjs">
+    <div><b>${N(hours)}</b><small>שעות השבוע</small></div>
+    ${cur?`<div class="live"><b>${N(Math.ceil(mins(cur.x.b)-nm))}</b><small>דק׳ נשארו לשיעור</small></div>`:`<div><b>${nxt?(nxt.d===t?"היום":rel(nxt.d)):"-"}</b><small>${nxt?`${T(nxt.x.a)}, ${bLbl(nxt.x)}`:"אין עוד השבוע"}</small></div>`}
+    <div class="${exs.length?"hot":""}"><b>${exs.length?(diff(exs[0].s)<=0?"היום":diff(exs[0].s)===1?"מחר":N(diff(exs[0].s))):"אין"}</b><small>${exs.length?(diff(exs[0].s)>1?`ימים ל${xk.w}`:xk.w):"מבחן קרוב"}</small></div>
+  </div>
+  ${cur?`<div class="nowbar"><div><span class="dot"></span>עכשיו בשיעור, ${bLbl(cur.x)}<b>עד ${T(cur.x.b)}</b></div><i style="--p:${(nm-mins(cur.x.a))/(mins(cur.x.b)-mins(cur.x.a))*100}%"></i></div>`:""}
+  ${exs.length&&diff(exs[0].s)<=7?`<p class="soonx"><i class="ph-fill ph-pencil-simple-line"></i><b>${esc(exs[0].t)}</b> ${diff(exs[0].s)<=0?"היום":diff(exs[0].s)===1?"מחר":`עוד ${diff(exs[0].s)} ימים`}${hoursOf(exs[0])?`, ${esc(hoursOf(exs[0]))}`:""}</p>`:""}
+  <h3 class="sjt">מבחנים ובחנים</h3>`;
+  h+=exs.length?`<div class="el">${exs.map(e=>{const n=diff(e.s),hh=hoursOf(e);return`<div class="er k-exam${n<=3?" soon":""}"><div class="d">${N(P(e.s).getDate())}<small>${new Intl.DateTimeFormat("he-IL",{month:"short"}).format(P(e.s))}</small></div><div class="x"><b>${esc(e.t)}</b><span>יום ${DAYS[P(e.s).getDay()]}${hh?`, ${esc(hh)}`:", שעתיים"}</span></div><div class="in">${n<=0?"היום":n===1?"מחר":`בעוד ${n} ימים`}</div></div>`}).join("")}</div>`
+    :`<p class="sjn">אין מבחן קרוב ב${esc(k)}. כשיתווסף מבחן או בוחן הוא יופיע כאן.</p>`;
+  h+=`<h3 class="sjt">השבוע ב${esc(k)}</h3>`;
+  h+=occ.length?`<div class="el">${occ.map(o=>{const ex=o.x.exam&&!o.x.exam.marked;return`<button class="er sjo${o.d===t?" now":""}" data-d="${o.d}"><div class="d"><b class="num">${DL[P(o.d).getDay()]}׳</b><small>${N(dm(o.d))}</small></div><div class="x"><b>${ex?esc(o.x.exam.t):`יום ${DAYS[P(o.d).getDay()]}`}</b><span>${bLbl(o.x)}, ${T(o.x.a)}-${T(o.x.b)}</span></div>${ex?`<span class="tag"><i class="ph-fill ph-pencil-simple-line"></i>${kindOf(o.x.exam.t).w}</span>`:""}</button>`}).join("")}</div>`
+    :`<p class="sjn">אין שיעורים ב${esc(k)} בימים שכבר פורסמו השבוע.</p>`;
+  $("sjBody").innerHTML=h;$("sj").classList.add("open");if(live)sc.scrollTop=top;
+  $("sjBody").querySelectorAll(".sjo").forEach(b=>b.onclick=()=>{closeSubj();S.tab="s";pick(b.dataset.d)});
+}
+const closeSubj=()=>$("sj").classList.remove("open");
+$("sjScrim").onclick=closeSubj;
+$("list").addEventListener("click",e=>{const r=e.target.closest("[data-k]");if(!r)return;if(r.classList.contains("wh"))return;openSubj(r.dataset.k)});
+$("list").addEventListener("click",e=>{const h=e.target.closest(".wh[data-d]");if(h){S.pref.view="day";ls.set("pref",S.pref);pick(h.dataset.d);render(true)}});
+$("vt").onclick=e=>{const b=e.target.closest("[data-v]");if(b){S.pref.view=b.dataset.v;ls.set("pref",S.pref);render(true)}};
+
+/* ---------- more settings ---------- */
+$("ecs").onclick=e=>{const b=e.target.closest("[data-e]");if(b){S.pref.ec=b.dataset.e;savePref()}};
+let resetArm=0;$("resetBtn").onclick=()=>{if(Date.now()-resetArm<4000){try{localStorage.clear()}catch{}location.reload();return}
+  resetArm=Date.now();$("resetBtn").textContent="לחצו שוב כדי למחוק הכל";setTimeout(()=>$("resetBtn").textContent="איפוס האפליקציה",4000)};
+if(window.Native&&Native.setWidget)$("wHint").hidden=false;
+if(window.Native&&Native.setReminders)$("swRemind").hidden=false;
+
+/* ---------- home-screen widget feed (Android) ---------- */
+function pushWidget(){if(!(window.Native&&Native.setWidget))return;
+  try{const t=today(),f=focus(),out={cls:cl(S.cls),days:[]};
+    for(const d of [...new Set([t,f])]){const doc=docFor(d);if(!doc)continue;const B=blocks(lessons(doc),examsOn(d)).B;
+      out.days.push({d,b:B.filter(x=>x.items.length||x.exam).map(x=>({a:x.a,b:x.b,n:bLbl(x),t:bName(x),ex:!!(x.exam&&!x.exam.marked),kw:x.exam&&!x.exam.marked?kindOf(x.exam.t).w:""}))})}
+    const up=S.events.filter(e=>e.k==="exam"&&e.e>=t&&mine(e)).sort((a,b)=>a.s.localeCompare(b.s))[0];
+    if(up){const n=diff(up.s);out.exam=`${up.t} ${n<=0?"היום":n===1?"מחר":`בעוד ${n} ימים`}`}
+    Native.setWidget(JSON.stringify(out))}catch{}
+  try{if(Native.setReminders){const t=today(),rs=[];if(S.pref.remind)for(const e of S.events.filter(e=>e.k==="exam"&&e.s>=t&&mine(e)).sort((a,b)=>a.s.localeCompare(b.s)).slice(0,12)){
+      const h=hoursOf(e)||"שעתיים, השעות עוד לא סומנו",k=kindOf(e.t).w;
+      const eve=P(e.s);eve.setDate(eve.getDate()-1);eve.setHours(19,0,0,0);const mor=P(e.s);mor.setHours(7,0,0,0);
+      rs.push({at:eve.getTime(),title:`מחר: ${e.t}`,text:`${h}. בהצלחה!`},{at:mor.getTime(),title:`היום ${k}: ${e.t}`,text:h})}
+    const sig=JSON.stringify(rs);if(sig!==pushWidget.last){pushWidget.last=sig;Native.setReminders(sig)}}}catch{}}
+
+const tick=()=>{try{window.Native&&Native.tick&&Native.tick()}catch{}};
+document.addEventListener("click",e=>{if(e.target.closest("button,.row[data-k]"))tick()},true);
+for(const w of ["sw","sj"]){const sh=$(w).querySelector(".sheet");let y0=null,dy=0,t0=0;
+  sh.addEventListener("touchstart",e=>{const onGrab=e.target.closest(".grab");if(sh.scrollTop>0&&!onGrab){y0=null;return}y0=e.touches[0].clientY;dy=0;t0=Date.now()},{passive:true});
+  sh.addEventListener("touchmove",e=>{if(y0==null)return;dy=e.touches[0].clientY-y0;if(dy<0){dy=0;return}if(e.target.closest("input,select")&&dy<12)return;sh.style.transition="none";sh.style.transform=`translateY(${dy}px)`},{passive:true});
+  sh.addEventListener("touchend",()=>{if(y0==null)return;y0=null;sh.style.transition="";sh.style.transform="";if(dy>110||(dy>40&&dy/(Date.now()-t0)>.5)){w==="sw"?close():closeSubj()}dy=0});}
+window.appBack=()=>{if($("sj").classList.contains("open")){closeSubj();return true}if($("sw").classList.contains("open")){close();return true}if(S.tab!=="s"){S.tab="s";render(true);return true}return false};
+render(false);refresh();
+try{if(window.Native&&Native.askNotify&&S.pref.remind&&!ls.get("askedNotify",false)){ls.set("askedNotify",true);setTimeout(()=>Native.askNotify(),2500)}}catch{}
+if(!ls.get("onboarded",false))setTimeout(()=>openSheet(true),350);
+setInterval(refresh,REFRESH);
+setInterval(()=>{if(document.hidden)return;if(!$("sw").classList.contains("open"))render(false);if($("sj").classList.contains("open")&&S.sjKey)openSubj(S.sjKey,true)},20000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){S.manual=false;Date.now()-S.at>60000?refresh():render(false)}});
+addEventListener("online",refresh);
+if("serviceWorker"in navigator&&!window.Native)navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
