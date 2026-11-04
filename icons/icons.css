@@ -72,6 +72,9 @@
 .ph.ph-squares-four:before {
   content: "\e464";
 }
+.ph.ph-star-four:before {
+  content: "\e6a4";
+}
 .ph.ph-sun:before {
   content: "\e472";
 }
@@ -156,6 +159,9 @@
 }
 .ph-fill.ph-squares-four:before {
   content: "\e464";
+}
+.ph-fill.ph-star-four:before {
+  content: "\e6a4";
 }
 .ph-fill.ph-sun:before {
   content: "\e472";

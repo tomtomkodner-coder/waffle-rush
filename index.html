@@ -329,6 +329,7 @@ h1{margin:14px 0 0;font-size:30px;line-height:1.15;font-weight:600;font-variatio
 .row.cur .c,.row.exam .c{position:relative}
 .c .left{position:absolute;top:10px;inset-inline-end:12px;padding:1px 8px;border-radius:999px;background:var(--raised);border:1px solid var(--line);font-size:12px;font-weight:600;color:var(--ink)}
 .row.exam .c .left{color:var(--exam);border-color:var(--exam-line)}
+.row.cur .c .s:first-child,.row.cur .c .xt{padding-inline-end:92px}
 .gap.brknow .c{color:var(--calm)}.gap.brknow .c b{display:inline-block;margin-inline-start:8px;padding:0 8px;border-radius:999px;background:var(--calm-soft);font-weight:600;font-size:12px}
 .wc .wl{font-size:10.5px;color:var(--muted)}
 .sjs .live{border-color:color-mix(in srgb,var(--accent) 40%,var(--line));background:var(--accent-soft)}
@@ -359,6 +360,21 @@ h1{margin:14px 0 0;font-size:30px;line-height:1.15;font-weight:600;font-variatio
 .credit{margin:18px 0 4px;text-align:center;font-size:13px;color:var(--faint)}.credit b{color:var(--muted);font-weight:600}
 .updcard{display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:12px 14px;border-radius:14px;background:var(--exam-soft);border:1px solid var(--exam-line);box-shadow:var(--glow-soft);color:var(--ink);text-decoration:none}
 .updcard i{font-size:22px;color:var(--exam)}.updcard b{display:block;font-weight:600}.updcard small{color:var(--muted);font-size:12.5px}
+/* the relevant day glows blue */
+:root{--hl:#4C9BFF;--hl-soft:rgba(76,155,255,.13);--hl-line:rgba(76,155,255,.6)}
+:root[data-theme=light]{--hl:#1F6FEB;--hl-soft:rgba(31,111,235,.09);--hl-line:rgba(31,111,235,.45)}
+.day.focus b{color:var(--hl);text-shadow:0 0 12px var(--hl-line)}
+.day.focus .num{color:var(--hl);opacity:.85}
+.dind.hl{background:var(--hl-soft);box-shadow:inset 0 0 0 1px var(--hl-line),0 0 18px color-mix(in srgb,var(--hl) 28%,transparent)}
+:root[data-glow=off] .day.focus b{text-shadow:none}
+/* events marked in the school's file (non-blue colour), e.g. חידון תנ"ך */
+:root{--ev:#F2B880;--ev-soft:rgba(242,184,128,.12);--ev-line:rgba(242,184,128,.5)}
+:root[data-theme=light]{--ev:#B45309;--ev-soft:rgba(180,83,9,.08);--ev-line:rgba(180,83,9,.4)}
+.tag.evt{background:var(--ev);color:var(--bg);box-shadow:none;animation:none}
+.row.event .c{background:var(--ev-soft);border-color:var(--ev-line)}
+.row.event .rail-v i{border-color:var(--ev)}
+.row.event .xt b{color:var(--ev)}
+.wc.ev{background:var(--ev-soft);border-color:var(--ev-line);color:var(--ev)}.wc.ev::before{background:var(--ev)}
 /* news */
 .news{display:flex;align-items:center;gap:10px;margin-top:12px;padding:9px 8px 9px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-size:14px}
 .news>i{font-size:18px;color:var(--muted)}
@@ -553,7 +569,7 @@ async function loadAvail(){
 async function loadDoc(date){
   const r=await fetch(`${DB}/schedules/${date}?key=${KEY}`);if(r.status===404){S.docs[date]=null;return null}if(!r.ok)throw new Error(r.status);
   const f=fields(await r.json());if(f.classes?.length)S.classes=f.classes;
-  return S.docs[date]={date:f.date,up:f.uploaded_at,lessons:(f.lessons||[]).map(l=>({n:l.lesson_num,a:l.time_start,b:l.time_end,c:l.classes||{},x:l.cell_colors||{}}))};
+  return S.docs[date]={date:f.date,up:f.uploaded_at,lessons:(f.lessons||[]).map(l=>({n:l.lesson_num,a:l.time_start,b:l.time_end,c:l.classes||{},x:l.cell_colors||{},y:l.cell_labels||{}}))};
 }
 async function loadEvents(){
   S.events=(await query({from:[{collectionId:"calendarEvents"}],where:{fieldFilter:{field:{fieldPath:"end"},op:"GREATER_THAN_OR_EQUAL",value:{stringValue:add(today(),-1)}}},orderBy:[{field:{fieldPath:"end"}}],limit:500}))
@@ -600,7 +616,7 @@ function lessons(doc){
   const L=doc.lessons.map(l=>({...l,items:(l.c[S.cls]||[]).filter(x=>x.subject||x.teacher).map(x=>x.subject&&x.teacher&&!/\s/.test(x.subject.trim())&&x.teacher.split(/\s+/).includes(x.subject.trim())?{...x,subject:""}:x)}));
   const R=doc.date?applyRules(L,doc):L;
   const a=R.findIndex(l=>l.items.length);let b=R.length-1;while(b>=0&&!R[b].items.length)b--;
-  return a<0?[]:R.slice(a,b+1);
+  const out=a<0?[]:R.slice(a,b+1);out.date=doc.date;return out;
 }
 const has=d=>S.avail.some(x=>x.date===d);
 function focus(){
@@ -660,17 +676,28 @@ function header(){
 /* week */
 function week(){const w=wk(S.sel);
   $("days").innerHTML=[0,1,2,3,4].map(i=>{const d=add(w,i),ex=examsOn(d).length,nd=!has(d)&&!S.docs[d]&&!weeklyDoc(d);
-    return`<button class="day${nd?" nodata":""}" aria-pressed="${d===S.sel}" data-d="${d}" aria-label="יום ${DAYS[i]} ${dm(d)}${ex?", יש מבחן":""}"><b>${DAYS[i]}</b>${N(dm(d))}${ex?'<span class="mark"></span>':""}</button>`}).join("")}
+    return`<button class="day${nd?" nodata":""}${d===focus()?" focus":""}" aria-pressed="${d===S.sel}" data-d="${d}" aria-label="יום ${DAYS[i]} ${dm(d)}${ex?", יש מבחן":""}"><b>${DAYS[i]}</b>${N(dm(d))}${ex?'<span class="mark"></span>':""}</button>`}).join("")}
 function placeInd(){const sel=$("days").querySelector("[aria-pressed=true]"),ind=$("dind"),w=$("daysw");if(!sel||w.offsetParent===null){ind.classList.remove("on");return}
-  const wr=w.getBoundingClientRect(),r=sel.getBoundingClientRect();ind.style.width=r.width+"px";ind.style.transform=`translateX(${r.left-wr.left}px)`;
+  /* offsetLeft/offsetWidth are layout units, so this stays right under the "large text" zoom */
+  ind.style.width=sel.offsetWidth+"px";ind.style.height=sel.offsetHeight+"px";ind.style.top=sel.offsetTop+"px";ind.style.transform=`translateX(${sel.offsetLeft}px)`;
+  ind.classList.toggle("hl",sel.classList.contains("focus"));
   if(!ind.classList.contains("on")){ind.classList.add("on");w.classList.add("ind");requestAnimationFrame(()=>ind.classList.add("mv"))}}
 addEventListener("resize",placeInd);
 
 /* blocks: merge double lessons, and put exams in place of the lessons they cover */
+const isBlue=c=>{const m=String(c||"").replace("#","").match(/^([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i);if(!m)return false;const[r,g,b]=m.slice(1).map(h=>parseInt(h,16)/255),mx=Math.max(r,g,b),mn=Math.min(r,g,b);if(mx-mn<.15)return false;const dd=mx-mn;const h=((mx===r?((g-b)/dd)%6:mx===g?(b-r)/dd+2:(r-g)/dd+4)*60+360)%360;return h>=180&&h<=250};
+const eventsOn=d=>S.events.filter(e=>e.k!=="exam"&&e.k!=="school"&&e.k!=="holiday"&&e.g.length&&e.s<=d&&e.e>=d&&mine(e));
+const isXB=x=>!!(x&&x.exam&&!x.exam.marked&&!x.exam.ev);
 function blocks(L,ex){
   const mark=L.map(()=>null),placed=new Set(),left=[...ex];
   /* the school colors exam hours in its timetable file */
-  const groups=[];L.forEach((l,i)=>{if(!(l.x&&l.x[S.cls]))return;const g=groups.at(-1);if(g&&g.at(-1)===i-1)g.push(i);else groups.push([i])});
+  const groups=[];const evGroups=[];
+  L.forEach((l,i)=>{const col=l.x&&l.x[S.cls];if(!col)return;const into=isBlue(col)?groups:evGroups;const g=into.at(-1);if(g&&g.at(-1)===i-1)g.push(i);else into.push([i])});
+  /* non-blue colour: the school marks an event in those hours (e.g. חידון תנ"ך); take its label, or the day's event for my class */
+  const evs=L.date?eventsOn(L.date):[];
+  for(const g of evGroups){const lab=g.map(i=>L[i].y&&L[i].y[S.cls]).find(Boolean);
+    const e=lab?{t:heb(lab)}:(evs.length===1?evs[0]:evs.find(e=>!e.tm)||evs[0]);
+    if(e){const m={t:e.t,ev:true,d:e.d||""};g.forEach(i=>mark[i]=m)}}
   for(const g of groups){
     let e=left.find(e=>g.some(i=>L[i].items.some(x=>isEx(x,[e]))))||left[0]||null;
     if(e){left.splice(left.indexOf(e),1);placed.add(e)}
@@ -706,7 +733,7 @@ const bLbl=x=>x.ls.length>1?`שיעורים ${x.n}`:`שיעור ${x.n}`;
 function ring(fr,big,small,c=""){const C=2*Math.PI*44,o=C*(1-Math.max(0,Math.min(1,fr)));
   return`<div class="ring ${c}"><svg viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="44" fill="none" stroke-width="7"/><circle class="val" cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${o}" style="--C:${C}"/></svg><div class="ring-c">${N(big)}<small>${small}</small></div></div>`}
 function rail(B,isT){const nm=nowM();let li=0;
-  return`<div class="rail">${B.flatMap(x=>x.ls.map(l=>({l,ex:!!x.exam&&!x.exam.marked}))).map(({l,ex})=>{const a=mins(l.a),b=mins(l.b),p=!isT?0:nm>=b?100:nm>a?(nm-a)/(b-a)*100:0;
+  return`<div class="rail">${B.flatMap(x=>x.ls.map(l=>({l,ex:!!isXB(x)}))).map(({l,ex})=>{const a=mins(l.a),b=mins(l.b),p=!isT?0:nm>=b?100:nm>a?(nm-a)/(b-a)*100:0;
     return`<div class="seg${!l.items.length?" free":""}${p>=100?" done":""}${ex?" ex":""}" style="--w:${b-a};--k:${li++}">${p>0&&p<100?`<span class="fill" style="--p:${p}%"></span>`:""}</div>`}).join("")}</div>
 `}
 const note=ex=>ex.length?`<div class="note"><i class="ph-fill ph-pencil-simple-line"></i><span>${ex.map(e=>esc(e.t)).join(", ")}, שעתיים. השעות עוד לא סומנו במערכת</span></div>`:"";
@@ -715,12 +742,12 @@ function now(){
   if(!L.length){box.innerHTML=ex.length?`<div class="now">${note(ex)}</div>`:"";return}
   const{B,loose}=blocks(L,ex),nm=nowM(),cnt=L.filter(l=>l.items.length).length;
   const cur=isT&&B.find(x=>nm>=mins(x.a)&&nm<mins(x.b)),nx=isT&&B.find(x=>mins(x.a)>nm);let h;
-  if(cur){const a=mins(cur.a),b=mins(cur.b),e=!!cur.exam&&!cur.exam.marked;
+  if(cur){const a=mins(cur.a),b=mins(cur.b),e=!!isXB(cur);
     h=`<div class="now-top">${ring((nm-a)/(b-a),Math.ceil(b-nm),"דק׳",e?"exam":"")}<div class="nt"><div class="lbl${e?" exam":""}"><span class="dot"></span>עכשיו, ${bLbl(cur)}</div><div class="subj${e?" glow":""}">${esc(bName(cur))}</div><div class="meta">${e?`${bLbl(cur)}, במקום ${esc(sn(cur))}`:esc(tn(cur))}</div></div></div>${rail(B,isT)}`
-      +(nx?`<div class="next"><i class="ph ph-arrow-bend-down-left"></i>אחר כך <b${nx.exam&&!nx.exam.marked?' class="glow"':""}>${esc(bName(nx))}</b>${T(nx.a)}</div>`:`<div class="next"><i class="ph ph-flag-checkered"></i>השיעור האחרון להיום${T(cur.b)}</div>`)}
+      +(nx?`<div class="next"><i class="ph ph-arrow-bend-down-left"></i>אחר כך <b${isXB(nx)?' class="glow"':""}>${esc(bName(nx))}</b>${T(nx.a)}</div>`:`<div class="next"><i class="ph ph-flag-checkered"></i>השיעור האחרון להיום${T(cur.b)}</div>`)}
   else if(isT&&nx){const before=nm<mins(B[0].a),left=Math.ceil(mins(nx.a)-nm);
     const ps=before?mins(nx.a)-60:mins(B.filter(x=>mins(x.b)<=nm).at(-1).b),fr=before?1-Math.min(1,left/60):(nm-ps)/(mins(nx.a)-ps);
-    h=`<div class="now-top">${ring(fr,left>99?fmtT(nx.a):left,left>99?"פתיחה":"דק׳","calm")}<div class="nt"><div class="lbl calm"><span class="dot"></span>${before?"עוד מעט מתחילים":"הפסקה"}</div><div class="subj${nx.exam&&!nx.exam.marked?" glow":""}">${esc(bName(nx))}</div><div class="meta">${esc(tn(nx))}${tn(nx)?", ":""}${bLbl(nx)}</div></div></div>${rail(B,isT)}`}
+    h=`<div class="now-top">${ring(fr,left>99?fmtT(nx.a):left,left>99?"פתיחה":"דק׳","calm")}<div class="nt"><div class="lbl calm"><span class="dot"></span>${before?"עוד מעט מתחילים":"הפסקה"}</div><div class="subj${isXB(nx)?" glow":""}">${esc(bName(nx))}</div><div class="meta">${esc(tn(nx))}${tn(nx)?", ":""}${bLbl(nx)}</div></div></div>${rail(B,isT)}`}
   else{const fl=B.find(x=>x.items.length)||B[0];
     h=`<div class="now-top">${ring(0,cnt,"שיעורים")}<div class="nt"><div class="lbl">${rel(d)}, ${dm(d)}</div><div class="subj">מתחילים ב-${T(B[0].a)}</div><div class="meta">${esc(bName(fl))}, מסיימים ב-${T(B.at(-1).b)}</div></div></div>${rail(B,isT)}`}
   box.innerHTML=`<div class="now">${h}${note(loose)}</div>`;
@@ -750,8 +777,10 @@ function list(anim){
     const subj=[...new Set(x.ls.flatMap(l=>l.items.map(y=>fix(y.subject))))].join(" / ");
     const tch=S.pref.teachers?[...new Set(x.ls.flatMap(l=>l.items.map(y=>name(y.teacher))))].filter(Boolean).join(" / "):"";
     let body,cls="";
-    if(x.exam&&!x.exam.marked){cls=" exam";
+    if(isXB(x)){cls=" exam";
       body=`<div class="xt"><span class="tag"><i class="ph-fill ph-pencil-simple-line"></i>${kindOf(x.exam.t).w}</span><b>${esc(x.exam.t)}</b></div><div class="m">${bLbl(x)}${x.exam.room?`, חדר ${esc(x.exam.room)}`:""}${subj&&!x.exam.cell&&!x.exam.t.includes(base(subj))?`, במקום ${esc(subj)}`:""}</div>${x.exam.news?`<div class="m2">מתוך הודעה באתר בית הספר: ${esc(x.exam.news)}</div>`:""}`}
+    else if(x.exam&&x.exam.ev){cls=" event";
+      body=`<div class="xt"><span class="tag evt"><i class="ph-fill ph-star-four"></i>אירוע</span><b>${esc(x.exam.t)}</b></div><div class="m">${bLbl(x)}${subj?`, במקום ${esc(subj)}`:""}${tch?`, ${esc(tch)}`:""}</div>${x.exam.d?`<div class="m2">${esc(x.exam.d)}</div>`:""}`}
     else if(x.exam){cls=" marked";
       body=`<div class="xt"><span class="tag soft">מסומן</span><b>${esc(subj)}</b></div><div class="m">${bLbl(x)}${tch?`, ${esc(tch)}`:""}</div><div class="m2">השעות מסומנות בכחול במערכת של בית הספר, בדרך כלל זה מבחן</div>`}
     else body=free?`<div class="s">שעה חופשית</div><div class="m">${bLbl(x)}</div>`:x.items.map((y,j)=>`<div class="g"><div class="s">${esc(fix(y.subject))}${y.is_sub?'<span class="tag sub">החלפה</span>':""}</div><div class="m">${j===0?bLbl(x):""}${j===0&&x.ls[0].rule?'<span class="mine">קבוע שלך</span>':""}${j===0&&S.pref.teachers&&y.teacher?", ":""}${S.pref.teachers?esc(name(y.teacher)):""}${y.is_sub&&y.orig_subject?`, במקום ${esc(fix(y.orig_subject))}`:""}</div></div>`).join("");
@@ -916,8 +945,8 @@ function weekGrid(anim){
     if(B===null){h+=`<div class="wx" style="grid-column:${c+2};grid-row:2/span ${nums.length}">${has(d)?"טוען…":"עוד לא<br>פורסם"}</div>`;return}
     for(const x of B){if(!x.items.length&&!x.exam)continue;const r0=nums.indexOf(+x.ls[0].n),r1=nums.indexOf(+x.ls.at(-1).n);
       const cur=d===t&&nm>=mins(x.a)&&nm<mins(x.b),past=d===t&&nm>=mins(x.b),k=skey(x);
-      const ex=x.exam&&!x.exam.marked;
-      h+=`<button class="wc${ex?" ex":""}${cur?" cur":""}${past?" past":""}${wk2[c]?" exp":""}" style="grid-column:${c+2};grid-row:${r0+2}/${r1+3};--c:${scol(k)};--ci:${c};--ri:${r0}" data-k="${esc(k)}" data-d="${d}">${ex?'<i class="ph-fill ph-pencil-simple-line"></i>':""}<span>${esc(short(ex?k||x.exam.t:sn(x)))}</span>${cur?`<small class="wl">${N(Math.ceil(mins(x.b)-nm))}׳</small>`:""}</button>`}});
+      const ex=isXB(x),ev=!!(x.exam&&x.exam.ev);
+      h+=`<button class="wc${ex?" ex":""}${ev?" ev":""}${cur?" cur":""}${past?" past":""}${wk2[c]?" exp":""}" style="grid-column:${c+2};grid-row:${r0+2}/${r1+3};--c:${scol(k)};--ci:${c};--ri:${r0}" data-k="${esc(k)}" data-d="${d}">${ex?'<i class="ph-fill ph-pencil-simple-line"></i>':""}<span>${esc(short(ex?k||x.exam.t:ev?x.exam.t:sn(x)))}</span>${cur?`<small class="wl">${N(Math.ceil(mins(x.b)-nm))}׳</small>`:""}</button>`}});
   h+="</div>";el.innerHTML=h;const g=el.querySelector(".wg");if(anim&&g){g.classList.add("enter");if(S.dir)g.classList.add("dir-"+S.dir)}
 }
 
@@ -944,7 +973,7 @@ function openSubj(k,live){
   h+=exs.length?`<div class="el">${exs.map(e=>{const n=diff(e.s),hh=hoursOf(e);return`<div class="er k-exam${n<=3?" soon":""}"><div class="d">${N(P(e.s).getDate())}<small>${new Intl.DateTimeFormat("he-IL",{month:"short"}).format(P(e.s))}</small></div><div class="x"><b>${esc(e.t)}</b><span>יום ${DAYS[P(e.s).getDay()]}${hh?`, ${esc(hh)}`:", שעתיים"}</span></div><div class="in">${n<=0?"היום":n===1?"מחר":`בעוד ${n} ימים`}</div></div>`}).join("")}</div>`
     :`<p class="sjn">אין מבחן קרוב ב${esc(k)}. כשיתווסף מבחן או בוחן הוא יופיע כאן.</p>`;
   h+=`<h3 class="sjt">השבוע ב${esc(k)}</h3>`;
-  h+=occ.length?`<div class="el">${occ.map(o=>{const ex=o.x.exam&&!o.x.exam.marked;return`<button class="er sjo${o.d===t?" now":""}" data-d="${o.d}"><div class="d"><b class="num">${DL[P(o.d).getDay()]}׳</b><small>${N(dm(o.d))}</small></div><div class="x"><b>${ex?esc(o.x.exam.t):`יום ${DAYS[P(o.d).getDay()]}`}</b><span>${bLbl(o.x)}, ${T(o.x.a)}-${T(o.x.b)}</span></div>${ex?`<span class="tag"><i class="ph-fill ph-pencil-simple-line"></i>${kindOf(o.x.exam.t).w}</span>`:""}</button>`}).join("")}</div>`
+  h+=occ.length?`<div class="el">${occ.map(o=>{const ex=isXB(o.x);return`<button class="er sjo${o.d===t?" now":""}" data-d="${o.d}"><div class="d"><b class="num">${DL[P(o.d).getDay()]}׳</b><small>${N(dm(o.d))}</small></div><div class="x"><b>${ex?esc(o.x.exam.t):`יום ${DAYS[P(o.d).getDay()]}`}</b><span>${bLbl(o.x)}, ${T(o.x.a)}-${T(o.x.b)}</span></div>${ex?`<span class="tag"><i class="ph-fill ph-pencil-simple-line"></i>${kindOf(o.x.exam.t).w}</span>`:""}</button>`}).join("")}</div>`
     :`<p class="sjn">אין שיעורים ב${esc(k)} בימים שכבר פורסמו השבוע.</p>`;
   $("sjBody").innerHTML=h;$("sjBody").classList.toggle("noanim",!!live);[...$("sjBody").children].forEach((c,i)=>c.style.setProperty("--j",Math.min(i,12)));$("sj").classList.add("open");if(live)sc.scrollTop=top;
   $("sjBody").querySelectorAll(".sjo").forEach(b=>b.onclick=()=>{closeSubj();S.tab="s";pick(b.dataset.d)});
@@ -966,7 +995,7 @@ if(window.Native&&Native.setReminders)$("swRemind").hidden=false;
 function pushWidget(){if(!(window.Native&&Native.setWidget))return;
   try{const t=today(),f=focus(),out={cls:cl(S.cls),days:[],name:S.name||"",theme:document.documentElement.dataset.theme||"dark"};
     for(const d of [...new Set([t,f])]){const doc=docFor(d);if(!doc)continue;const B=blocks(lessons(doc),examsOn(d)).B;
-      const BB=B.filter(x=>x.items.length||x.exam);out.days.push({d,lbl:(d===t?"היום":rel(d))+", "+dm(d),cnt:BB.reduce((a,x)=>a+(x.items.length?x.ls.length:0),0),b:BB.map(x=>({a:x.a,b:x.b,n:bLbl(x),t:bName(x),m:x.exam&&!x.exam.marked?"":tn(x),ex:!!(x.exam&&!x.exam.marked),kw:x.exam&&!x.exam.marked?kindOf(x.exam.t).w:""}))})}
+      const BB=B.filter(x=>x.items.length||x.exam);out.days.push({d,lbl:(d===t?"היום":rel(d))+", "+dm(d),cnt:BB.reduce((a,x)=>a+(x.items.length?x.ls.length:0),0),b:BB.map(x=>({a:x.a,b:x.b,n:bLbl(x),t:bName(x),m:isXB(x)?"":tn(x),ex:!!(isXB(x)),kw:isXB(x)?kindOf(x.exam.t).w:""}))})}
     const up=S.events.filter(e=>e.k==="exam"&&e.e>=t&&mine(e)).sort((a,b)=>a.s.localeCompare(b.s))[0];
     if(up){const n=diff(up.s);out.exam=`${up.t} ${n<=0?"היום":n===1?"מחר":`בעוד ${n} ימים`}`}
     Native.setWidget(JSON.stringify(out))}catch{}
