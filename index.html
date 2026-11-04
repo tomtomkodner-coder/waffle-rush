@@ -147,8 +147,48 @@ h1{margin:14px 0 0;font-size:30px;line-height:1.15;font-weight:600;font-variatio
 .tag.sub{background:var(--raised);color:var(--ink);box-shadow:none;animation:none;border:1px solid var(--line)}
 .gap .rail-v::before{background:none;border-inline-start:1.5px dashed var(--line);width:0;margin-left:-.75px}
 .gap .c{background:none;border:0;padding-block:2px;font-size:12.5px;color:var(--faint)}
-.enter>*{animation:rise .32s var(--ease) both;animation-delay:calc(var(--i,0)*30ms)}
-@keyframes rise{from{opacity:0;transform:translateY(6px)}}
+/* ---------- motion: every animation says "something changed", short, and off with reduced motion ---------- */
+.enter>*{animation:rise .38s var(--ease) both;animation-delay:calc(var(--i,0)*28ms)}
+@keyframes rise{from{opacity:0;transform:translateY(8px);filter:blur(4px)}}
+/* day change: content arrives from the direction of the day, with horizontal-only motion blur (SVG filters #mb7/#mb3) */
+@keyframes mbL{0%{opacity:0;transform:translateX(-36px);filter:url(#mb7)}40%{opacity:1;filter:url(#mb3)}70%{filter:none}100%{opacity:1;transform:none;filter:none}}
+@keyframes mbR{0%{opacity:0;transform:translateX(36px);filter:url(#mb7)}40%{opacity:1;filter:url(#mb3)}70%{filter:none}100%{opacity:1;transform:none;filter:none}}
+.tl.enter.dir-next>*,.wg.dir-next>*{animation:mbL .46s var(--ease) both;animation-delay:calc(var(--i,0)*22ms)}
+.tl.enter.dir-prev>*,.wg.dir-prev>*{animation:mbR .46s var(--ease) both;animation-delay:calc(var(--i,0)*22ms)}
+#nowBox.enter1 .now{animation:rise .42s var(--ease) both}
+#nowBox.dir-next .now{animation:mbL .46s var(--ease) both}
+#nowBox.dir-prev .now{animation:mbR .46s var(--ease) both}
+/* the ring draws itself, the day rail fills */
+#nowBox.enter1 .ring .val,#nowBox[class*=dir-] .ring .val{animation:ringIn 1s var(--ease) .12s both}
+@keyframes ringIn{from{stroke-dashoffset:var(--C)}}
+#nowBox.enter1 .seg .fill,#nowBox[class*=dir-] .seg .fill{animation:grow .9s var(--ease) .18s both}
+#nowBox.enter1 .seg.done,#nowBox[class*=dir-] .seg.done{animation:segIn .5s var(--ease) both;animation-delay:calc(var(--k,0)*35ms + .1s)}
+@keyframes grow{from{width:0}}
+@keyframes segIn{from{opacity:.2}}
+/* sliding highlight in the day picker */
+.daysw{position:relative}
+.dind{position:absolute;top:4px;left:0;height:calc(100% - 8px);border-radius:12px;background:var(--raised);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 35%,transparent);z-index:0;pointer-events:none;opacity:0}
+.dind.on{opacity:1}.dind.mv{transition:transform .42s var(--ease),width .42s var(--ease),opacity .2s ease}
+.daysw .day{z-index:1}
+.daysw.ind .day[aria-pressed=true]{background:transparent;box-shadow:none}
+/* tabs */
+.tabin{animation:tabIn .36s var(--ease) both}
+@keyframes tabIn{from{opacity:0;filter:blur(6px);transform:scale(.985)}}
+.tabin .er{animation:rise .38s var(--ease) both;animation-delay:calc(var(--i,0)*24ms + 60ms)}
+/* week grid pops in column by column */
+.wg.enter .wc{animation:pop .42s var(--ease) both;animation-delay:calc(var(--ci,0)*40ms + var(--ri,0)*14ms)}
+@keyframes pop{from{opacity:0;transform:scale(.92);filter:blur(4px)}}
+/* sheets: blurred backdrop, content arrives in sequence */
+.scrim{-webkit-backdrop-filter:blur(0);backdrop-filter:blur(0);transition:opacity .28s ease,backdrop-filter .35s ease,-webkit-backdrop-filter .35s ease}
+.open .scrim{-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px)}
+.open .sheet .in>*{animation:rise .44s var(--ease) both;animation-delay:calc(var(--j,0)*32ms + 90ms)}
+.noanim>*{animation:none!important}
+.upd:not([hidden]){animation:updIn .55s var(--drawer) both}
+@keyframes updIn{from{opacity:0;transform:translateY(28px);filter:blur(6px)}}
+/* first paint */
+.hd>*{animation:rise .55s var(--ease) both}.hd>*:nth-child(2){animation-delay:.05s}.hd>*:nth-child(3){animation-delay:.1s}.hd>*:nth-child(4){animation-delay:.15s}
+.tl.drag,#nowBox.drag{transition:none}
+.tl.back,#nowBox.back{transition:transform .3s var(--ease),opacity .3s ease}
 
 .empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding:40px 20px;border-radius:20px;background:var(--surface);border:1px solid var(--line);color:var(--muted);font-size:14.5px}
 .empty i{font-size:28px;color:var(--faint);margin-bottom:6px}
@@ -363,6 +403,7 @@ h1{margin:14px 0 0;font-size:30px;line-height:1.15;font-weight:600;font-variatio
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><filter id="mb7" x="-20%" y="0" width="140%" height="100%"><feGaussianBlur stdDeviation="7 0"/></filter><filter id="mb3" x="-10%" y="0" width="120%" height="100%"><feGaussianBlur stdDeviation="3 0"/></filter></svg>
 <header class="wrap hd">
   <div class="hd-row">
     <span class="date" id="date"></span>
@@ -377,7 +418,7 @@ h1{margin:14px 0 0;font-size:30px;line-height:1.15;font-weight:600;font-variatio
   <div class="news" id="news" hidden></div>
 </header>
 
-<div class="week" id="weekBar"><div class="wrap"><div class="days" id="days" role="toolbar" aria-label="ימי השבוע"></div></div></div>
+<div class="week" id="weekBar"><div class="wrap"><div class="daysw" id="daysw"><span class="dind" id="dind"></span><div class="days" id="days" role="toolbar" aria-label="ימי השבוע"></div></div></div></div>
 
 <main class="wrap">
   <section id="vS">
@@ -620,6 +661,10 @@ function header(){
 function week(){const w=wk(S.sel);
   $("days").innerHTML=[0,1,2,3,4].map(i=>{const d=add(w,i),ex=examsOn(d).length,nd=!has(d)&&!S.docs[d]&&!weeklyDoc(d);
     return`<button class="day${nd?" nodata":""}" aria-pressed="${d===S.sel}" data-d="${d}" aria-label="יום ${DAYS[i]} ${dm(d)}${ex?", יש מבחן":""}"><b>${DAYS[i]}</b>${N(dm(d))}${ex?'<span class="mark"></span>':""}</button>`}).join("")}
+function placeInd(){const sel=$("days").querySelector("[aria-pressed=true]"),ind=$("dind"),w=$("daysw");if(!sel||w.offsetParent===null){ind.classList.remove("on");return}
+  const wr=w.getBoundingClientRect(),r=sel.getBoundingClientRect();ind.style.width=r.width+"px";ind.style.transform=`translateX(${r.left-wr.left}px)`;
+  if(!ind.classList.contains("on")){ind.classList.add("on");w.classList.add("ind");requestAnimationFrame(()=>ind.classList.add("mv"))}}
+addEventListener("resize",placeInd);
 
 /* blocks: merge double lessons, and put exams in place of the lessons they cover */
 function blocks(L,ex){
@@ -659,10 +704,10 @@ const bLbl=x=>x.ls.length>1?`שיעורים ${x.n}`:`שיעור ${x.n}`;
 
 /* now */
 function ring(fr,big,small,c=""){const C=2*Math.PI*44,o=C*(1-Math.max(0,Math.min(1,fr)));
-  return`<div class="ring ${c}"><svg viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="44" fill="none" stroke-width="7"/><circle class="val" cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${o}"/></svg><div class="ring-c">${N(big)}<small>${small}</small></div></div>`}
-function rail(B,isT){const nm=nowM();
+  return`<div class="ring ${c}"><svg viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="44" fill="none" stroke-width="7"/><circle class="val" cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${o}" style="--C:${C}"/></svg><div class="ring-c">${N(big)}<small>${small}</small></div></div>`}
+function rail(B,isT){const nm=nowM();let li=0;
   return`<div class="rail">${B.flatMap(x=>x.ls.map(l=>({l,ex:!!x.exam&&!x.exam.marked}))).map(({l,ex})=>{const a=mins(l.a),b=mins(l.b),p=!isT?0:nm>=b?100:nm>a?(nm-a)/(b-a)*100:0;
-    return`<div class="seg${!l.items.length?" free":""}${p>=100?" done":""}${ex?" ex":""}" style="--w:${b-a}">${p>0&&p<100?`<span class="fill" style="--p:${p}%"></span>`:""}</div>`}).join("")}</div>
+    return`<div class="seg${!l.items.length?" free":""}${p>=100?" done":""}${ex?" ex":""}" style="--w:${b-a};--k:${li++}">${p>0&&p<100?`<span class="fill" style="--p:${p}%"></span>`:""}</div>`}).join("")}</div>
 `}
 const note=ex=>ex.length?`<div class="note"><i class="ph-fill ph-pencil-simple-line"></i><span>${ex.map(e=>esc(e.t)).join(", ")}, שעתיים. השעות עוד לא סומנו במערכת</span></div>`:"";
 function now(){
@@ -712,7 +757,7 @@ function list(anim){
     else body=free?`<div class="s">שעה חופשית</div><div class="m">${bLbl(x)}</div>`:x.items.map((y,j)=>`<div class="g"><div class="s">${esc(fix(y.subject))}${y.is_sub?'<span class="tag sub">החלפה</span>':""}</div><div class="m">${j===0?bLbl(x):""}${j===0&&x.ls[0].rule?'<span class="mine">קבוע שלך</span>':""}${j===0&&S.pref.teachers&&y.teacher?", ":""}${S.pref.teachers?esc(name(y.teacher)):""}${y.is_sub&&y.orig_subject?`, במקום ${esc(fix(y.orig_subject))}`:""}</div></div>`).join("");
     h+=`<div class="row${st}${free?" free":""}${cls}" style="--i:${i++}"${free?"":` data-k="${esc(x.exam&&!x.exam.cell?skey(x):base(subj))}"`}><div class="t">${T(x.a)}${T(x.b)}</div><div class="rail-v"><i></i></div><div class="c${x.exam?" xb":""}">${body}${st===" cur"?`<span class="left">נשארו ${N(Math.ceil(b-nm))} דק׳</span><div class="bar"><span style="--p:${(nm-a)/(b-a)*100}%"></span></div>`:""}</div></div>`;
   });
-  el.innerHTML=h;if(anim)el.classList.add("enter");
+  el.innerHTML=h;if(anim){el.classList.add("enter");if(S.dir)el.classList.add("dir-"+S.dir)}
   $("showPast")?.addEventListener("click",()=>{S.pref.hidePast=false;ls.set("pref",S.pref);render(true)});
 }
 
@@ -746,15 +791,18 @@ function render(anim){
   $("tS").setAttribute("aria-selected",s);$("tE").setAttribute("aria-selected",!s);
   $("iS").className=(s?"ph-fill":"ph")+" ph-calendar-blank";$("iE").className=(s?"ph":"ph-fill")+" ph-pencil-simple-line";
   $("fEx").setAttribute("aria-pressed",S.exF==="exam");$("fAll").setAttribute("aria-pressed",S.exF==="all");
-  if(s){week();now();list(anim)}else exams();foot();pushWidget();
+  if(s){week();now();list(anim);requestAnimationFrame(placeInd);const nb=$("nowBox");nb.className="";if(anim){void nb.offsetWidth;nb.className=S.dir?"dir-"+S.dir:"enter1"}}else exams();
+  if(S.lastTab!==S.tab){const v=$(s?"vS":"vE");v.classList.remove("tabin");if(S.lastTab){void v.offsetWidth;v.classList.add("tabin")}S.lastTab=S.tab}
+  if(!s)$("exList").querySelectorAll(".er").forEach((r,i)=>r.style.setProperty("--i",Math.min(i,14)));
+  foot();pushWidget();S.dir=null;
 }
-async function pick(d){if(d===S.sel)return;S.sel=d;S.manual=d!==focus();render(true);
+async function pick(d){if(d===S.sel)return;S.dir=d>S.sel?"next":"prev";S.sel=d;S.manual=d!==focus();render(true);
   if(S.docs[d]===undefined&&has(d)){try{await loadDoc(d);ls.set("docs",S.docs)}catch{}render(false)}}
 
 /* sheet: every change applies instantly */
 function openSheet(first){try{updInfo()}catch{}$("nameIn").value=S.name;
   $("shT").textContent=first?"נעים להכיר":"הגדרות";$("shS").textContent=first?"שני פרטים קטנים ומתחילים. הכל נשמר רק בטלפון שלך.":"הכל נשמר רק בטלפון שלך.";
-  $("save").textContent=first?"מתחילים":"סיום";draw();$("sw").classList.add("open")}
+  $("save").textContent=first?"מתחילים":"סיום";draw();[...$("sw").querySelector(".sheet .in").children].forEach((c,i)=>c.style.setProperty("--j",Math.min(i,12)));$("sw").classList.add("open")}
 function draw(){const by={};for(const c of S.classes){const[g]=split(c);(by[g]=by[g]||[]).push(c)}
   $("grades").innerHTML=Object.entries(by).map(([g,cs])=>`<div class="gr"><span>${gl(g)}</span><div class="r">${cs.map(c=>`<button data-c="${esc(c)}" aria-pressed="${c===S.cls}">${cl(c)}</button>`).join("")}</div></div>`).join("");
   $("themes").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.t===S.theme));
@@ -794,7 +842,10 @@ $("tS").onclick=()=>{S.tab="s";render(true);scrollTo(0,0)};$("tE").onclick=()=>{
 $("fEx").onclick=()=>{S.exF="exam";render()};$("fAll").onclick=()=>{S.exF="all";render()};
 let sx=0,sy=0;
 $("vS").addEventListener("touchstart",e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
-$("vS").addEventListener("touchend",e=>{const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+$("vS").addEventListener("touchmove",e=>{if(anySheet())return;const dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;if(Math.abs(dx)<12||Math.abs(dx)<Math.abs(dy)*1.5)return;
+  for(const el of [$("list"),$("nowBox")]){el.classList.add("drag");el.classList.remove("back");el.style.transform=`translateX(${dx*.32}px)`;el.style.opacity=String(Math.max(.35,1-Math.abs(dx)/520))}},{passive:true});
+const dragEnd=()=>{for(const el of [$("list"),$("nowBox")]){if(!el.classList.contains("drag"))continue;el.classList.remove("drag");el.classList.add("back");el.style.transform="";el.style.opacity=""}};
+$("vS").addEventListener("touchend",e=>{dragEnd();const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
   if(anySheet()||Math.abs(dx)<60||Math.abs(dx)<Math.abs(dy)*1.5)return;let d=S.sel;const st=dx>0?1:-1;do{d=add(d,st)}while(P(d).getDay()>4);pick(d)},{passive:true});
 
 /* pull to refresh */
@@ -866,8 +917,8 @@ function weekGrid(anim){
     for(const x of B){if(!x.items.length&&!x.exam)continue;const r0=nums.indexOf(+x.ls[0].n),r1=nums.indexOf(+x.ls.at(-1).n);
       const cur=d===t&&nm>=mins(x.a)&&nm<mins(x.b),past=d===t&&nm>=mins(x.b),k=skey(x);
       const ex=x.exam&&!x.exam.marked;
-      h+=`<button class="wc${ex?" ex":""}${cur?" cur":""}${past?" past":""}${wk2[c]?" exp":""}" style="grid-column:${c+2};grid-row:${r0+2}/${r1+3};--c:${scol(k)}" data-k="${esc(k)}" data-d="${d}">${ex?'<i class="ph-fill ph-pencil-simple-line"></i>':""}<span>${esc(short(ex?k||x.exam.t:sn(x)))}</span>${cur?`<small class="wl">${N(Math.ceil(mins(x.b)-nm))}׳</small>`:""}</button>`}});
-  h+="</div>";el.innerHTML=h;if(anim)el.classList.add("enter");
+      h+=`<button class="wc${ex?" ex":""}${cur?" cur":""}${past?" past":""}${wk2[c]?" exp":""}" style="grid-column:${c+2};grid-row:${r0+2}/${r1+3};--c:${scol(k)};--ci:${c};--ri:${r0}" data-k="${esc(k)}" data-d="${d}">${ex?'<i class="ph-fill ph-pencil-simple-line"></i>':""}<span>${esc(short(ex?k||x.exam.t:sn(x)))}</span>${cur?`<small class="wl">${N(Math.ceil(mins(x.b)-nm))}׳</small>`:""}</button>`}});
+  h+="</div>";el.innerHTML=h;const g=el.querySelector(".wg");if(anim&&g){g.classList.add("enter");if(S.dir)g.classList.add("dir-"+S.dir)}
 }
 
 /* ---------- subject page ---------- */
@@ -895,7 +946,7 @@ function openSubj(k,live){
   h+=`<h3 class="sjt">השבוע ב${esc(k)}</h3>`;
   h+=occ.length?`<div class="el">${occ.map(o=>{const ex=o.x.exam&&!o.x.exam.marked;return`<button class="er sjo${o.d===t?" now":""}" data-d="${o.d}"><div class="d"><b class="num">${DL[P(o.d).getDay()]}׳</b><small>${N(dm(o.d))}</small></div><div class="x"><b>${ex?esc(o.x.exam.t):`יום ${DAYS[P(o.d).getDay()]}`}</b><span>${bLbl(o.x)}, ${T(o.x.a)}-${T(o.x.b)}</span></div>${ex?`<span class="tag"><i class="ph-fill ph-pencil-simple-line"></i>${kindOf(o.x.exam.t).w}</span>`:""}</button>`}).join("")}</div>`
     :`<p class="sjn">אין שיעורים ב${esc(k)} בימים שכבר פורסמו השבוע.</p>`;
-  $("sjBody").innerHTML=h;$("sj").classList.add("open");if(live)sc.scrollTop=top;
+  $("sjBody").innerHTML=h;$("sjBody").classList.toggle("noanim",!!live);[...$("sjBody").children].forEach((c,i)=>c.style.setProperty("--j",Math.min(i,12)));$("sj").classList.add("open");if(live)sc.scrollTop=top;
   $("sjBody").querySelectorAll(".sjo").forEach(b=>b.onclick=()=>{closeSubj();S.tab="s";pick(b.dataset.d)});
 }
 const closeSubj=()=>$("sj").classList.remove("open");
