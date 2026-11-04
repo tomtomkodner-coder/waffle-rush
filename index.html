@@ -375,6 +375,9 @@ h1{margin:14px 0 0;font-size:30px;line-height:1.15;font-weight:600;font-variatio
 .row.event .rail-v i{border-color:var(--ev)}
 .row.event .xt b{color:var(--ev)}
 .wc.ev{background:var(--ev-soft);border-color:var(--ev-line);color:var(--ev)}.wc.ev::before{background:var(--ev)}
+.bgbtn{display:flex;align-items:center;gap:12px;width:100%;margin-top:8px;padding:12px 14px;border-radius:14px;background:var(--exam-soft);border:1px solid var(--exam-line);text-align:start;color:var(--ink)}
+.bgbtn i{font-size:20px;color:var(--exam)}.bgbtn b{display:block;font-weight:600}.bgbtn small{color:var(--muted);font-size:12.5px}
+.bgbtn.ok{background:var(--bg);border-color:var(--line)}.bgbtn.ok i{color:var(--calm)}
 /* news */
 .news{display:flex;align-items:center;gap:10px;margin-top:12px;padding:9px 8px 9px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-size:14px}
 .news>i{font-size:18px;color:var(--muted)}
@@ -494,7 +497,8 @@ h1{margin:14px 0 0;font-size:30px;line-height:1.15;font-weight:600;font-variatio
       </div>
     </div>
     <div class="f"><span class="l">באתר של בית הספר</span><div class="links" id="links"></div></div>
-    <div class="f" id="wHint" hidden><span class="l">ווידג׳ט</span><p class="hint"><i class="ph ph-squares-four"></i>אפשר להוסיף את Handasaim למסך הבית: לחיצה ארוכה על המסך, ווידג׳טים, Handasaim. הוא מראה את השיעור הנוכחי, הבא ואת המבחן הקרוב.</p></div>
+    <div class="f" id="wHint" hidden><span class="l">ווידג׳ט</span><p class="hint"><i class="ph ph-squares-four"></i>אפשר להוסיף את Handasaim למסך הבית: לחיצה ארוכה על המסך, ווידג׳טים, Handasaim. הוא מראה את השיעור הנוכחי, הבא, אירועים ואת המבחן הקרוב, ומתעדכן כל דקה.</p>
+      <button class="bgbtn" id="bgBtn" hidden><i class="ph ph-lightning"></i><span><b>לאפשר עדכון ברקע</b><small>בלי זה חלק מהטלפונים עוצרים את הווידג׳ט כדי לחסוך סוללה</small></span></button></div>
     <a class="updcard" id="updCard" hidden target="_blank" rel="noopener"><i class="ph ph-cloud-arrow-down"></i><span><b>יש גרסה חדשה של Handasaim</b><small>לחצו להורדה והתקנה</small></span></a>
     <div class="acts2"><button id="rfNow"><i class="ph ph-arrow-clockwise"></i>רענון המערכת</button><button id="chkUpd" hidden><i class="ph ph-cloud-arrow-down"></i>בדיקת עדכונים</button></div>
     <button class="cta" id="save">סיום</button>
@@ -829,7 +833,7 @@ async function pick(d){if(d===S.sel)return;S.dir=d>S.sel?"next":"prev";S.sel=d;S
   if(S.docs[d]===undefined&&has(d)){try{await loadDoc(d);ls.set("docs",S.docs)}catch{}render(false)}}
 
 /* sheet: every change applies instantly */
-function openSheet(first){try{updInfo()}catch{}$("nameIn").value=S.name;
+function openSheet(first){try{updInfo()}catch{}bgState();$("nameIn").value=S.name;
   $("shT").textContent=first?"נעים להכיר":"הגדרות";$("shS").textContent=first?"שני פרטים קטנים ומתחילים. הכל נשמר רק בטלפון שלך.":"הכל נשמר רק בטלפון שלך.";
   $("save").textContent=first?"מתחילים":"סיום";draw();[...$("sw").querySelector(".sheet .in").children].forEach((c,i)=>c.style.setProperty("--j",Math.min(i,12)));$("sw").classList.add("open")}
 function draw(){const by={};for(const c of S.classes){const[g]=split(c);(by[g]=by[g]||[]).push(c)}
@@ -998,6 +1002,9 @@ let resetArm=0;$("resetBtn").onclick=()=>{if(Date.now()-resetArm<4000){try{local
   resetArm=Date.now();$("resetBtn").textContent="לחצו שוב כדי למחוק הכל";setTimeout(()=>$("resetBtn").textContent="איפוס האפליקציה",4000)};
 if(window.Native&&Native.setWidget)$("wHint").hidden=false;
 if(window.Native&&Native.setReminders)$("swRemind").hidden=false;
+function bgState(){try{if(window.Native&&Native.bgAllowed){const ok=Native.bgAllowed();$("bgBtn").hidden=false;$("bgBtn").classList.toggle("ok",ok);
+  $("bgBtn").querySelector("b").textContent=ok?"עדכון ברקע מאופשר":"לאפשר עדכון ברקע";$("bgBtn").querySelector("i").className="ph ph-"+(ok?"check-circle":"lightning")}}catch{}}
+$("bgBtn").onclick=()=>{try{Native.askBackground()}catch{}};document.addEventListener("visibilitychange",()=>{if(!document.hidden)bgState()});
 
 /* ---------- home-screen widget feed (Android) ---------- */
 function pushWidget(){if(!(window.Native&&Native.setWidget))return;

@@ -42,6 +42,9 @@
 .ph.ph-calendar-blank:before {
   content: "\e10a";
 }
+.ph.ph-check-circle:before {
+  content: "\e184";
+}
 .ph.ph-circle-half:before {
   content: "\e18c";
 }
@@ -53,6 +56,9 @@
 }
 .ph.ph-gear-six:before {
   content: "\e272";
+}
+.ph.ph-lightning:before {
+  content: "\e2de";
 }
 .ph.ph-megaphone-simple:before {
   content: "\e642";
@@ -130,6 +136,9 @@
 .ph-fill.ph-calendar-blank:before {
   content: "\e10a";
 }
+.ph-fill.ph-check-circle:before {
+  content: "\e184";
+}
 .ph-fill.ph-circle-half:before {
   content: "\e18c";
 }
@@ -141,6 +150,9 @@
 }
 .ph-fill.ph-gear-six:before {
   content: "\e272";
+}
+.ph-fill.ph-lightning:before {
+  content: "\e2de";
 }
 .ph-fill.ph-megaphone-simple:before {
   content: "\e642";
