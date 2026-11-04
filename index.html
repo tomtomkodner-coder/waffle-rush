@@ -994,10 +994,13 @@ if(window.Native&&Native.setReminders)$("swRemind").hidden=false;
 /* ---------- home-screen widget feed (Android) ---------- */
 function pushWidget(){if(!(window.Native&&Native.setWidget))return;
   try{const t=today(),f=focus(),out={cls:cl(S.cls),days:[],name:S.name||"",theme:document.documentElement.dataset.theme||"dark"};
-    for(const d of [...new Set([t,f])]){const doc=docFor(d);if(!doc)continue;const B=blocks(lessons(doc),examsOn(d)).B;
-      const BB=B.filter(x=>x.items.length||x.exam);out.days.push({d,lbl:(d===t?"היום":rel(d))+", "+dm(d),cnt:BB.reduce((a,x)=>a+(x.items.length?x.ls.length:0),0),b:BB.map(x=>({a:x.a,b:x.b,n:bLbl(x),t:bName(x),m:isXB(x)?"":tn(x),ex:!!(isXB(x)),kw:isXB(x)?kindOf(x.exam.t).w:""}))})}
+    /* a week ahead, so the widget stays right even if the app isn't opened for a few days */
+    const ds=[t];for(let d=t,k=0;k<6;k++){do{d=add(d,1)}while(P(d).getDay()>4);ds.push(d)}
+    for(const d of ds){const doc=docFor(d);if(!doc)continue;const B=blocks(lessons(doc),examsOn(d)).B;
+      const BB=B.filter(x=>x.items.length||x.exam);out.days.push({d,lbl:dm(d),dow:P(d).getDay(),cnt:BB.reduce((a,x)=>a+(x.items.length?x.ls.length:0),0),b:BB.map(x=>({a:x.a,b:x.b,n:bLbl(x),t:bName(x),m:isXB(x)?"":tn(x),ex:!!(isXB(x)),ev:!!(x.exam&&x.exam.ev),kw:isXB(x)?kindOf(x.exam.t).w:""}))})}
     const up=S.events.filter(e=>e.k==="exam"&&e.e>=t&&mine(e)).sort((a,b)=>a.s.localeCompare(b.s))[0];
-    if(up){const n=diff(up.s);out.exam=`${up.t} ${n<=0?"היום":n===1?"מחר":`בעוד ${n} ימים`}`}
+    if(up){const n=diff(up.s);out.exam=`${up.t} ${n<=0?"היום":n===1?"מחר":`בעוד ${n} ימים`}`;out.examT=up.t;out.examD=up.s}
+    out.exams=S.events.filter(e=>e.k==="exam"&&e.e>=t&&mine(e)).sort((a,b)=>a.s.localeCompare(b.s)).slice(0,6).map(e=>({t:e.t,d:e.s}));
     Native.setWidget(JSON.stringify(out))}catch{}
   try{if(Native.setReminders){const t=today(),rs=[];if(S.pref.remind)for(const e of S.events.filter(e=>e.k==="exam"&&e.s>=t&&mine(e)).sort((a,b)=>a.s.localeCompare(b.s)).slice(0,12)){
       const h=hoursOf(e)||"שעתיים, השעות עוד לא סומנו",k=kindOf(e.t).w;
