@@ -378,6 +378,8 @@ h1{margin:14px 0 0;font-size:30px;line-height:1.15;font-weight:600;font-variatio
 .bgbtn{display:flex;align-items:center;gap:12px;width:100%;margin-top:8px;padding:12px 14px;border-radius:14px;background:var(--exam-soft);border:1px solid var(--exam-line);text-align:start;color:var(--ink)}
 .bgbtn i{font-size:20px;color:var(--exam)}.bgbtn b{display:block;font-weight:600}.bgbtn small{color:var(--muted);font-size:12.5px}
 .bgbtn.ok{background:var(--bg);border-color:var(--line)}.bgbtn.ok i{color:var(--calm)}
+.spin{display:inline-block;width:12px;height:12px;margin-inline-end:8px;border-radius:50%;border:2px solid var(--exam-line);border-top-color:var(--exam);vertical-align:-1px;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 /* news */
 .news{display:flex;align-items:center;gap:10px;margin-top:12px;padding:9px 8px 9px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-size:14px}
 .news>i{font-size:18px;color:var(--muted)}
@@ -910,11 +912,15 @@ window.onNews=arr=>{if(!Array.isArray(arr))return;S.news=arr.filter(x=>typeof x=
 window.onAppUpdate=(kind,url)=>{const u=$("upd");
   const msg={none:"יש לך את הגרסה האחרונה",missing:"לא נמצאו קבצי עדכון ב-GitHub",offline:"אין חיבור לשרת העדכונים",error:"העדכון נכשל, ננסה שוב"}[kind];
   if(msg){const c=$("chkUpd");if(c)c.lastChild.textContent=msg;updInfo();return}
-  u.innerHTML=kind==="apk"?`<span>יש גרסה חדשה של האפליקציה</span><a href="${esc(url)}" target="_blank" rel="noopener">הורדה</a>`:`<span>עדכון חדש מוכן</span><button id="updGo">רענון</button>`;
+  const self=!!(appInfo()||{}).selfUpdate;
+  if(kind==="installing")u.innerHTML=`<span><span class="spin"></span>מוריד ומתקין את הגרסה החדשה…</span>`;
+  else if(kind==="apk")u.innerHTML=self?`<span>יש גרסה חדשה של האפליקציה</span><button id="updInst">התקנה</button>`:`<span>יש גרסה חדשה של האפליקציה</span><a href="${esc(url)}" target="_blank" rel="noopener">הורדה</a>`;
+  else u.innerHTML=`<span>עדכון חדש מוכן</span><button id="updGo">רענון</button>`;
+  $("updInst")?.addEventListener("click",()=>{try{Native.installUpdate(url)}catch{}onAppUpdate("installing",url)});
   u.hidden=false;$("updGo")?.addEventListener("click",()=>location.reload())};
 /* the page checks GitHub itself too, so even an older app (with the old native updater) sees a new APK */
 const UPD_URL="https://raw.githubusercontent.com/tomtomkodner-coder/waffle-rush/handasaim/update/version.json";
-const APKCODE={"1.0":1,"1.1":2,"1.2":3,"1.3":4,"1.4":5,"1.5":6,"1.6":7,"1.7":8,"1.8":9,"1.9":10,"2.0":11,"2.1":12,"2.2":13,"2.3":14,"2.4":15,"2.5":16};
+const APKCODE={"1.0":1,"1.1":2,"1.2":3,"1.3":4,"1.4":5,"1.5":6,"1.6":7,"1.7":8,"1.8":9,"1.9":10,"2.0":11,"2.1":12,"2.2":13,"2.3":14,"2.4":15,"2.5":16,"2.6":17};
 let webUpd=null;
 /* GitHub's raw files are cached for 5 minutes on many edge servers, so "the latest" can be stale.
    Ask the API for the newest commit id, then read the files at that id: that address never goes stale. */
@@ -926,10 +932,11 @@ async function updBase(){if(Date.now()-baseC.t<600000&&baseC.b)return baseC.b;
 async function webCheck(manual){const i=appInfo();if(!i)return null;const mine=i.versionCode||APKCODE[i.versionName]||0;
   try{const base=await updBase();const r=await fetch(base+"version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw 0;const v=await r.json();
     if(v.apk>mine){const url=base.includes("/handasaim/update/")?v.apkUrl:base+"handasaim-app.apk";webUpd=url;$("updCard").hidden=false;$("updCard").href=url;
-      const u=$("upd");if(u.hidden||!u.querySelector("a"))onAppUpdate("apk",url);return"apk"}
+      const u=$("upd");if(i.selfUpdate){const st=i.installState;if(st!=="downloading"&&st!=="installing"&&st!=="confirm")try{Native.checkNow()}catch{};if(u.hidden)onAppUpdate(st==="downloading"||st==="installing"?"installing":"apk",url)}
+      else if(u.hidden||!u.querySelector("a"))onAppUpdate("apk",url);return"apk"}
     return"none"}catch{return manual?"offline":null}}
 function pollUpd(){const i=appInfo();if(!i)return;const u=$("upd");if(i.apkUrl){if(u.hidden)onAppUpdate("apk",i.apkUrl);$("updCard").hidden=false;$("updCard").href=i.apkUrl}else if(i.pendingWeb&&u.hidden)onAppUpdate("web")}
-document.addEventListener("visibilitychange",()=>{if(!document.hidden){setTimeout(pollUpd,2500);webCheck()}});setInterval(pollUpd,60000);setInterval(()=>webCheck(),10*60000);setTimeout(pollUpd,4000);setTimeout(()=>webCheck(),3000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){const i=appInfo();if(i&&i.pendingWeb&&!anySheet()){location.reload();return}setTimeout(pollUpd,2500);webCheck()}});setInterval(pollUpd,60000);setInterval(()=>webCheck(),10*60000);setTimeout(pollUpd,4000);setTimeout(()=>webCheck(),3000);
 (()=>{const i=appInfo();if(i){if(i.pendingWeb)onAppUpdate("web");else if(i.apkUrl)onAppUpdate("apk",i.apkUrl);
   $("about").textContent+=` גרסה ${i.versionName}.${i.web}`}updInfo()})();
 function updInfo(){const i=appInfo();if(!i||!$("updInfo"))return;const a=i.lastCheck?Math.round((Date.now()-i.lastCheck)/60000):null;
