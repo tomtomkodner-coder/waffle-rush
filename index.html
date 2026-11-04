@@ -380,6 +380,7 @@ h1{margin:14px 0 0;font-size:30px;line-height:1.15;font-weight:600;font-variatio
 .bgbtn.ok{background:var(--bg);border-color:var(--line)}.bgbtn.ok i{color:var(--calm)}
 .spin{display:inline-block;width:12px;height:12px;margin-inline-end:8px;border-radius:50%;border:2px solid var(--exam-line);border-top-color:var(--exam);vertical-align:-1px;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+.wstat{margin:8px 0 0;font-size:12.5px;color:var(--faint)}.wstat.bad{color:var(--exam)}
 /* news */
 .news{display:flex;align-items:center;gap:10px;margin-top:12px;padding:9px 8px 9px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-size:14px}
 .news>i{font-size:18px;color:var(--muted)}
@@ -500,6 +501,7 @@ h1{margin:14px 0 0;font-size:30px;line-height:1.15;font-weight:600;font-variatio
     </div>
     <div class="f"><span class="l">באתר של בית הספר</span><div class="links" id="links"></div></div>
     <div class="f" id="wHint" hidden><span class="l">ווידג׳ט</span><p class="hint"><i class="ph ph-squares-four"></i>אפשר להוסיף את Handasaim למסך הבית: לחיצה ארוכה על המסך, ווידג׳טים, Handasaim. הוא מראה את השיעור הנוכחי, הבא, אירועים ואת המבחן הקרוב, ומתעדכן כל דקה.</p>
+      <p class="wstat" id="wStat" hidden></p>
       <button class="bgbtn" id="bgBtn" hidden><i class="ph ph-lightning"></i><span><b>לאפשר עדכון ברקע</b><small>בלי זה חלק מהטלפונים עוצרים את הווידג׳ט כדי לחסוך סוללה</small></span></button></div>
     <a class="updcard" id="updCard" hidden target="_blank" rel="noopener"><i class="ph ph-cloud-arrow-down"></i><span><b>יש גרסה חדשה של Handasaim</b><small>לחצו להורדה והתקנה</small></span></a>
     <div class="acts2"><button id="rfNow"><i class="ph ph-arrow-clockwise"></i>רענון המערכת</button><button id="chkUpd" hidden><i class="ph ph-cloud-arrow-down"></i>בדיקת עדכונים</button></div>
@@ -920,7 +922,7 @@ window.onAppUpdate=(kind,url)=>{const u=$("upd");
   u.hidden=false;$("updGo")?.addEventListener("click",()=>location.reload())};
 /* the page checks GitHub itself too, so even an older app (with the old native updater) sees a new APK */
 const UPD_URL="https://raw.githubusercontent.com/tomtomkodner-coder/waffle-rush/handasaim/update/version.json";
-const APKCODE={"1.0":1,"1.1":2,"1.2":3,"1.3":4,"1.4":5,"1.5":6,"1.6":7,"1.7":8,"1.8":9,"1.9":10,"2.0":11,"2.1":12,"2.2":13,"2.3":14,"2.4":15,"2.5":16,"2.6":17};
+const APKCODE={"1.0":1,"1.1":2,"1.2":3,"1.3":4,"1.4":5,"1.5":6,"1.6":7,"1.7":8,"1.8":9,"1.9":10,"2.0":11,"2.1":12,"2.2":13,"2.3":14,"2.4":15,"2.5":16,"2.6":17,"2.7":18};
 let webUpd=null;
 /* GitHub's raw files are cached for 5 minutes on many edge servers, so "the latest" can be stale.
    Ask the API for the newest commit id, then read the files at that id: that address never goes stale. */
@@ -1009,7 +1011,10 @@ let resetArm=0;$("resetBtn").onclick=()=>{if(Date.now()-resetArm<4000){try{local
   resetArm=Date.now();$("resetBtn").textContent="לחצו שוב כדי למחוק הכל";setTimeout(()=>$("resetBtn").textContent="איפוס האפליקציה",4000)};
 if(window.Native&&Native.setWidget)$("wHint").hidden=false;
 if(window.Native&&Native.setReminders)$("swRemind").hidden=false;
-function bgState(){try{if(window.Native&&Native.bgAllowed){const ok=Native.bgAllowed();$("bgBtn").hidden=false;$("bgBtn").classList.toggle("ok",ok);
+function wState(){const i=appInfo();const el=$("wStat");if(!i||!el)return;if(!i.wCount&&!i.wErr){el.hidden=true;return}
+  const t=i.wAt?new Date(i.wAt):null;el.hidden=false;el.classList.toggle("bad",!!i.wErr);
+  el.textContent=(t?`הווידג׳ט התעדכן לאחרונה ב-${t.getHours()}:${String(t.getMinutes()).padStart(2,"0")}`:"הווידג׳ט עוד לא התעדכן")+(i.wErr?` · שגיאה: ${i.wErr.slice(0,90)}`:"")}
+function bgState(){wState();try{if(window.Native&&Native.bgAllowed){const ok=Native.bgAllowed();$("bgBtn").hidden=false;$("bgBtn").classList.toggle("ok",ok);
   $("bgBtn").querySelector("b").textContent=ok?"עדכון ברקע מאופשר":"לאפשר עדכון ברקע";$("bgBtn").querySelector("i").className="ph ph-"+(ok?"check-circle":"lightning")}}catch{}}
 $("bgBtn").onclick=()=>{try{Native.askBackground()}catch{}};document.addEventListener("visibilitychange",()=>{if(!document.hidden)bgState()});
 
