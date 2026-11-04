@@ -910,11 +910,19 @@ window.onAppUpdate=(kind,url)=>{const u=$("upd");
   u.hidden=false;$("updGo")?.addEventListener("click",()=>location.reload())};
 /* the page checks GitHub itself too, so even an older app (with the old native updater) sees a new APK */
 const UPD_URL="https://raw.githubusercontent.com/tomtomkodner-coder/waffle-rush/handasaim/update/version.json";
-const APKCODE={"1.0":1,"1.1":2,"1.2":3,"1.3":4,"1.4":5,"1.5":6,"1.6":7,"1.7":8,"1.8":9,"1.9":10,"2.0":11,"2.1":12,"2.2":13};
+const APKCODE={"1.0":1,"1.1":2,"1.2":3,"1.3":4,"1.4":5,"1.5":6,"1.6":7,"1.7":8,"1.8":9,"1.9":10,"2.0":11,"2.1":12,"2.2":13,"2.3":14,"2.4":15,"2.5":16};
 let webUpd=null;
+/* GitHub's raw files are cached for 5 minutes on many edge servers, so "the latest" can be stale.
+   Ask the API for the newest commit id, then read the files at that id: that address never goes stale. */
+const RAWB="https://raw.githubusercontent.com/tomtomkodner-coder/waffle-rush/",API_C="https://api.github.com/repos/tomtomkodner-coder/waffle-rush/commits/handasaim";
+let baseC={t:0,b:""};
+async function updBase(){if(Date.now()-baseC.t<600000&&baseC.b)return baseC.b;
+  try{const r=await fetch(API_C,{headers:{Accept:"application/vnd.github+json"},cache:"no-store"});if(r.ok){const j=await r.json();if(j.sha){baseC={t:Date.now(),b:RAWB+j.sha+"/update/"};return baseC.b}}}catch{}
+  return RAWB+"handasaim/update/"}
 async function webCheck(manual){const i=appInfo();if(!i)return null;const mine=i.versionCode||APKCODE[i.versionName]||0;
-  try{const r=await fetch(UPD_URL+"?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw 0;const v=await r.json();
-    if(v.apk>mine){webUpd=v.apkUrl;$("updCard").hidden=false;$("updCard").href=v.apkUrl;if($("upd").hidden)onAppUpdate("apk",v.apkUrl);return"apk"}
+  try{const base=await updBase();const r=await fetch(base+"version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw 0;const v=await r.json();
+    if(v.apk>mine){const url=base.includes("/handasaim/update/")?v.apkUrl:base+"handasaim-app.apk";webUpd=url;$("updCard").hidden=false;$("updCard").href=url;
+      const u=$("upd");if(u.hidden||!u.querySelector("a"))onAppUpdate("apk",url);return"apk"}
     return"none"}catch{return manual?"offline":null}}
 function pollUpd(){const i=appInfo();if(!i)return;const u=$("upd");if(i.apkUrl){if(u.hidden)onAppUpdate("apk",i.apkUrl);$("updCard").hidden=false;$("updCard").href=i.apkUrl}else if(i.pendingWeb&&u.hidden)onAppUpdate("web")}
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){setTimeout(pollUpd,2500);webCheck()}});setInterval(pollUpd,60000);setInterval(()=>webCheck(),10*60000);setTimeout(pollUpd,4000);setTimeout(()=>webCheck(),3000);
